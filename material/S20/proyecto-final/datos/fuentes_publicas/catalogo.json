@@ -1,0 +1,26 @@
+{
+  "nota": "Lista blanca de fuentes públicas que la investigación puede leer. Con S20_FUENTES=locales se lee la copia de aula; con S20_FUENTES=red se descarga la URL. Ninguna otra URL está permitida.",
+  "fuentes": [
+    {
+      "id": "rfc6585-429",
+      "titulo": "RFC 6585 · sección 4 · 429 Too Many Requests",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585.txt",
+      "temas": ["429", "too many requests", "rate limit", "limite", "peticiones", "retry-after"],
+      "copia_local": "rfc6585-429.md"
+    },
+    {
+      "id": "rfc9110-retry-after",
+      "titulo": "RFC 9110 · sección 10.2.3 · Retry-After",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+      "temas": ["retry-after", "reintentar", "reintento", "cabecera", "segundos", "http"],
+      "copia_local": "rfc9110-retry-after.md"
+    },
+    {
+      "id": "aws-backoff-jitter",
+      "titulo": "Amazon Builders' Library · Timeouts, retries, and backoff with jitter",
+      "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+      "temas": ["reintentar", "reintento", "backoff", "jitter", "retries", "timeout"],
+      "copia_local": "aws-backoff-jitter.md"
+    }
+  ]
+}

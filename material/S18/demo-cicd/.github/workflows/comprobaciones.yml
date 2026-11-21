@@ -1,0 +1,63 @@
+# Las comprobaciones que definen «validado». Están escritas una sola vez y las llaman
+# la pull request (ci-pr.yml) y la publicación desde main (publicar-main.yml).
+# No piden credenciales de AWS: solo leen el repositorio.
+name: Comprobaciones
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash # con «shell: bash», GitHub ejecuta con -e y -o pipefail
+
+jobs:
+  comprobar:
+    name: Lock, análisis, tests e imagen
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # Las acciones externas van fijadas al SHA completo del commit (40 caracteres).
+      # El comentario indica la versión; un tag como @v7 puede moverse, un SHA no.
+      - name: Descargar el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+
+      - name: Instalar las dependencias bloqueadas
+        run: |
+          # --locked falla si uv.lock no corresponde a pyproject.toml: nadie instala «lo último».
+          uv sync --locked
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          # El archivo que usa Docker debe salir del mismo lock.
+          uv export --locked --no-dev --no-emit-project --no-header --format requirements-txt \
+            | diff -u requirements.lock -
+
+      - name: Análisis de código
+        run: |
+          ruff check .
+          ruff format --check .
+          cfn-lint infra/*.yaml
+
+      - name: Tests (sin red ni claves)
+        run: pytest
+
+      - name: Construir la imagen (no se publica)
+        run: |
+          docker build --provenance=false --build-arg "APP_VERSION=$GITHUB_SHA" \
+            -t api:comprobacion .
+
+      - name: Arrancar el contenedor y probarlo
+        run: |
+          docker run --rm -d --name api --read-only --cap-drop ALL \
+            -p 127.0.0.1:8000:8000 api:comprobacion
+          bash scripts/smoke.sh http://127.0.0.1:8000 "$GITHUB_SHA"
+          docker logs api
+          docker stop api

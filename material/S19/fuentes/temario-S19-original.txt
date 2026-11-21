@@ -1,0 +1,54 @@
+FUENTE ORIGINAL · TEMARIO DE S19 (texto literal, sin modificar)
+Origen: cuerpo del correo de Laura Aguado (thePower) a José Antonio Nuevo
+Asunto: «Re: Propuesta como profesor en thePower»
+Fecha: 17/07/2026 09:43 UTC
+Id de mensaje Gmail: 19f6f7569cc093d9 · hilo 19e45e5677b1ec54
+Leído en Gmail el 16/11/2026. El temario va en el cuerpo del mensaje, no en un adjunto.
+Se copia solo el bloque de S19 y, como contexto, los títulos de los bloques vecinos.
+Se conserva la ortografía original («metricas», «Analisis», «produccion»).
+El correo indica: «cada cuadro en blanco es una sesión en directo».
+----------------------------------------------------------------------
+
+IA ENGINEER:
+
+[...]
+
+CI/CD + MONITORIZACIÓN EN PRODUCCIÓN            <- bloque anterior (S18)
+[...]
+
+EVALUACIÓN Y TESTING DE SISTEMAS DE IA
+Evaluación y testing de sistemas de IA Cerrar el ciclo de calidad: medir de
+forma rigurosa si un sistema de IA funciona bien antes y después de cada
+cambio.
+Evaluación y testing de sistemas de IA Evaluación de modelos y metricas
+especificas / Analisis avanzado y metricas de produccion / Testing
+automatizado de agentes y pipelines RAG / Integración de la evaluación con
+las herramientas de observabilidad
+Construir un sistema RAG completo desde cero con evaluación y testing
+integrados
+
+PROYECTO FINAL: AGENTE CONVERSACIONAL            <- bloque siguiente (S20)
+[...]
+
+----------------------------------------------------------------------
+LECTURA DEL BLOQUE (interpretación de esta preparación, no texto de la escuela)
+
+Objetivo de la sesión:
+  Cerrar el ciclo de calidad: medir de forma rigurosa si un sistema de IA
+  funciona bien antes y después de cada cambio.
+
+Cuatro partes que hay que explicar:
+  T1. Evaluación de modelos y métricas específicas.
+  T2. Análisis avanzado y métricas de producción.
+  T3. Testing automatizado de agentes y pipelines RAG.
+  T4. Integración de la evaluación con las herramientas de observabilidad.
+
+Práctica asociada:
+  T5. Construir un sistema RAG completo desde cero con evaluación y testing
+      integrados.
+
+Relación con otras sesiones del mismo temario:
+  - «RAG AVANZADO» (S11) ya anunciaba «Evaluación y métricas específicas de
+    sistemas RAG»: S19 la retoma con medición separada y tests.
+  - «OBSERVABILITY: LANGFUSE + LANGSMITH» (S6) pedía «evaluar métricas de
+    LLMs» e instrumentar un grafo: S19 enlaza la evaluación con Langfuse.

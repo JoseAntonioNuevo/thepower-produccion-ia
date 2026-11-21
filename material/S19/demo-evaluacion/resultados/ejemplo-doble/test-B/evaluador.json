@@ -1,0 +1,32 @@
+{
+  "evaluador": {
+    "modo": "doble",
+    "ruta": null,
+    "llm": "doble-lexico",
+    "embeddings": "doble-hash-256",
+    "ragas": "0.4.3",
+    "langchain_community": "0.3.31",
+    "python": "3.12.16",
+    "aviso": "JUEZ DOBLE: métricas de Ragas ejecutadas con un juez y unos embeddings locales deterministas. Comprueban el recorrido de la evaluación; NO miden ninguna respuesta."
+  },
+  "resumen": {
+    "faithfulness": {
+      "evaluables": 8,
+      "esperados": 8,
+      "cobertura": 1.0,
+      "media": 1.0,
+      "no_evaluables_por_motivo": {
+        "rechazo_sin_respuesta": 12
+      }
+    },
+    "answer_relevancy": {
+      "evaluables": 8,
+      "esperados": 8,
+      "cobertura": 1.0,
+      "media": 0.525,
+      "no_evaluables_por_motivo": {
+        "rechazo_sin_respuesta": 12
+      }
+    }
+  }
+}

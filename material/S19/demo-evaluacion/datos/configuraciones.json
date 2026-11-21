@@ -1,0 +1,24 @@
+{
+  "descripcion": "Comparación A/B de S19. Las dos variantes parten de la misma configuración base y cambian UNA sola variable.",
+  "variable_comparada": "chunk_size",
+  "comun": "corpus, modelo de embeddings, modelo generativo, prompt v1, k_fragmentos=12, k_contexto=4, conjunto de test y evaluador",
+  "variantes": {
+    "A": {
+      "chunk_size": 320
+    },
+    "B": {
+      "chunk_size": 900
+    }
+  },
+  "alternativa_solo_prompt": {
+    "nota": "Con modelos reales también se puede comparar solo el prompt (un único índice). El generador doble no lee instrucciones: con él esta variante no cambia nada.",
+    "variantes": {
+      "P1": {
+        "prompt_version": "v1"
+      },
+      "P2": {
+        "prompt_version": "v2"
+      }
+    }
+  }
+}

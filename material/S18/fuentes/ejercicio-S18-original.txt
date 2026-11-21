@@ -1,0 +1,43 @@
+thePower · AI Engineer · ejercicio de la sesión 18 (texto original)
+
+Origen: adjunto «ejercicios.docx» del correo de José Antonio Nuevo a Laura Aguado, hilo «Update
+Directos Desarrollo Agéntico y AI Engineer».
+Fecha del correo: 29/09/2026, 06:11 UTC. Id del mensaje en Gmail: 1a0ebc9b585e70bc (hilo
+1a0d7bb5a23dc200). Laura confirmó el 29/09/2026 (id 1a0ec6965ebe503a) que los enunciados quedaron
+cargados en la plataforma.
+Descargado y leído desde Gmail el 16/11/2026 (solo lectura).
+SHA-256 del adjunto descargado: aa33d10efd00cef42ae0d0f2d28e16851f40fdd512ddd2c39ca4a094b33e35b0
+El documento contiene las sesiones 5, 6, 11, 18 y 19; aquí se copia solo la sesión 18. Cada
+párrafo del original ocupa una línea. Los rótulos entre corchetes indican el estilo del párrafo en
+el DOCX (título, subtítulo o encabezado); el resto es texto normal.
+
+[Título] Sesión 18 · CI/CD + monitorización en producción
+[Subtítulo] Montar un pipeline de CI/CD con tests automáticos
+
+[Encabezado] Enunciado
+
+Automatiza las pruebas, la construcción y el despliegue de una pequeña API de IA. Un cambio con errores debe quedar bloqueado antes de desplegarse. Demuestra además cómo detectar un fallo y volver a una versión anterior en un entorno de pruebas.
+
+[Encabezado] Explicación completa del ejercicio
+
+Usa una API FastAPI con /health y un endpoint de IA; puedes partir de la aplicación de la Sesión 16. Mantén una configuración local y otra de staging, el entorno donde comprobarás los cambios sin afectar a usuarios reales. Configura modelos y secretos fuera del código. Basta un repositorio GitHub y un servicio pequeño en ECS/Fargate.
+
+Ejecuta la integración continua. En cada pull request, GitHub Actions instalará las dependencias bloqueadas, ejecutará análisis de código y tests con pytest y comprobará que la imagen Docker se construye. Prueba entrada inválida, respuesta válida y fallo del proveedor con respuestas simuladas para no consumir APIs de pago. Introduce un fallo deliberado y demuestra que el workflow lo detecta. Fija todas las acciones externas al SHA completo de un commit verificado (40 caracteres), no a un tag como @v4.
+
+Despliega solo lo validado. Tras integrar en main, repite el análisis, los tests y la construcción sobre ese commit. Solo si pasan, publica esa imagen en ECR y registra su digest. Despliega a staging mediante workflow_dispatch desde main usando repo@sha256:... o un tag inmutable, sin reconstruir la imagen. Verifica /health y una petición funcional; un job correcto no basta si el servicio no responde.
+
+Configura OIDC correctamente. El proveedor OIDC de GitHub y el rol de despliegue estarán preparados en la cuenta del laboratorio. El job declarará environment: staging: el sub debe referirse a ese entorno, no a ref:refs/heads/main. Ajusta la confianza al sub real emitido (por ejemplo, repo:ORG/REPO:environment:staging), que puede incorporar IDs inmutables, y a aud = sts.amazonaws.com.
+
+Limita quién puede desplegar. El environment staging de GitHub debe permitir despliegues únicamente desde la rama main. Esto es necesario porque un workflow_dispatch puede lanzarse manualmente desde otras ramas. Las pull requests no deben recibir credenciales de despliegue y las credenciales de AWS se obtendrán de forma temporal mediante OIDC.
+
+Observa y recupera. Envía a CloudWatch logs con identificador de petición, versión, duración y estado, sin secretos. Localiza un error de prueba y revisa errores y latencia en un panel básico. Despliega una segunda versión y demuestra un rollback a la anterior reutilizando el digest de la imagen previamente validada; comprueba después el endpoint.
+
+Explica cómo proteger los datos. Añade al README un plan breve de despliegue progresivo, cambios de base de datos compatibles con la versión anterior y copias de seguridad con prueba de restauración. No se exige añadir una base de datos si tu API no la necesita. Volver a una imagen antigua no revierte por sí solo una migración de datos.
+
+Ampliación opcional. Añade una alerta automática o ejecuta una migración compatible y una restauración con datos ficticios. No lo pruebes sobre producción real.
+
+Entrega y valoración. Entrega aplicación, workflows, tests, evidencias de bloqueo, despliegue y rollback y pasos para eliminar los recursos propios. Se valorarán el bloqueo de cambios defectuosos, el uso del mismo artefacto, los secretos protegidos y la recuperación comprobable.
+
+Dedicación orientativa: 6–8 horas activas con API, proveedor OIDC, rol de despliegue y recursos del laboratorio preparados.
+
+Documentación de apoyo: GitHub Actions y ECS · OIDC para AWS · Environments · ECR por digest · Tags inmutables · Acciones fijadas por SHA

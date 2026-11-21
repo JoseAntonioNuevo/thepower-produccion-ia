@@ -1,0 +1,18 @@
+{
+  "origen_cantidades": "supuestos_docentes_no_mediciones",
+  "region": "eu-west-1",
+  "profile_id": "eu.amazon.nova-2-lite-v1:0",
+  "requests": 1000,
+  "memory_mb": 512,
+  "warm_billed_ms": 1500,
+  "cold_billed_ms": 1800,
+  "cold_fraction": 0.05,
+  "input_tokens": 250,
+  "output_tokens": 100,
+  "logs_ingest_gb": 0.002,
+  "logs_store_gb_month": 0.0004666667,
+  "s3_gb_month": 0.02,
+  "s3_puts": 1,
+  "s3_gets": 1,
+  "billable_egress_gb": 0.002
+}

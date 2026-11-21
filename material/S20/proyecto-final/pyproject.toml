@@ -1,0 +1,51 @@
+[project]
+name = "thepower-s20-proyecto-final"
+version = "0.1.0"
+description = "S20 · Proyecto final: agente conversacional de soporte (thePower · AI Engineer)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # El grafo del agente y su memoria en PostgreSQL.
+    "langgraph==1.2.22",
+    "langgraph-checkpoint-postgres==3.2.1",
+    # Perfil real: modelo de chat y embeddings (Gemini) a través de LangChain.
+    "langchain==1.5.0",
+    "langchain-google-genai==4.5.0",
+    # PostgreSQL + pgvector. Los vectores viajan como texto '[0.1,0.2,...]'::vector.
+    "psycopg[binary,pool]==3.3.9",
+    # API.
+    "fastapi==0.163.1",
+    "uvicorn==0.54.0",
+    # Model Context Protocol: servidor propio y cliente (SDK oficial, serie 2.x).
+    "mcp==2.3.0",
+    # Observabilidad (opcional en ejecución).
+    "langfuse==5.2.0",
+    # Descarga de las fuentes públicas de la investigación y cliente de pruebas de la API.
+    "httpx==0.28.1",
+]
+
+[dependency-groups]
+dev = ["pytest==9.2.0", "ruff==0.17.5"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Por defecto NO se ejecuta nada que necesite Docker (db) ni que gaste dinero (llm).
+addopts = "-ra -m 'not db and not llm and not demo'"
+markers = [
+    "db: integración con PostgreSQL + pgvector en Docker (sin coste)",
+    "demo: ensayo completo del modo clase (demo_clase.py); lanza la API y procesos, unos 15 s",
+    "llm: ejecución real con modelos de pago; exige claves y autorización",
+]
+filterwarnings = ["ignore::SyntaxWarning"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 105
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: `Depends(...)` como valor por defecto es el uso normal de FastAPI.
+ignore = ["B008"]

@@ -1,0 +1,14 @@
+{
+  "consultado": "2026-11-16",
+  "fuente": "https://ai.google.dev/gemini-api/docs/pricing",
+  "nivel": "Gemini Developer API · Standard · Paid Tier",
+  "moneda": "USD",
+  "unidad": "por 1.000.000 de tokens",
+  "aviso": "Tarifas públicas leídas en la fecha indicada. El coste calculado con ellas es una ESTIMACIÓN, no una factura. Vuelve a comprobarlas antes de ejecutar.",
+  "modelos": {
+    "gemini-3.5-flash-lite": {"entrada": 0.30, "salida": 2.50, "nota": "la salida incluye tokens de razonamiento"},
+    "gemini-3.8-flash": {"entrada": 0.75, "salida": 3.75, "nota": "hasta el 31/12/2026; 1,50 y 7,50 desde el 01/01/2027"},
+    "gemini-embedding-2": {"entrada": 0.20, "salida": 0.0, "nota": "entrada de texto"},
+    "gemini-embedding-001": {"entrada": 0.15, "salida": 0.0}
+  }
+}

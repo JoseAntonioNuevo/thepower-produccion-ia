@@ -1,0 +1,51 @@
+Sesión 17 · Serverless AI: AWS Bedrock + Lambda
+Construir una API de IA serverless con AWS Bedrock
+
+Enunciado
+Crea un endpoint HTTP que reciba una incidencia ficticia, la valide en Lambda e invoque Amazon
+Bedrock. Devuelve categoría, prioridad y respuesta en JSON y analiza la latencia, el coste y los límites
+del sistema.
+
+Explicación completa del ejercicio
+Trabajo obligatorio. Usa API Gateway HTTP API con autorización IAM y una Lambda con el SDK de
+AWS. Configura BEDROCK_MODEL_ID; la referencia europea es eu.amazon.nova-2-lite-v1:0. No
+cambies a un perfil global sin justificar dónde se procesan las peticiones.
+Configura los permisos. Converse se autoriza mediante bedrock:InvokeModel, no
+bedrock:Converse. El rol de Lambda debe permitir el perfil y el modelo base en las regiones de destino
+del perfil, no todos los modelos de Bedrock. La identidad que llama a la HTTP API necesita además
+execute-api:Invoke sobre tu ruta.
+
+Prueba una llamada firmada. IAM exige firmar las peticiones con SigV4. Puedes usar curl --aws-
+sigv4 o awscurl. Este ejemplo usa credenciales temporales en variables de entorno; API_URL es la
+URL HTTPS de tu ruta y peticion.json contiene una incidencia con el esquema de tu API. No
+guardes las claves ni el token en el repositorio.
+curl --aws-sigv4 "aws:amz:${AWS_REGION}:execute-api" \
+  --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+  -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+  -H "content-type: application/json" \
+  --data-binary @peticion.json \
+  "${API_URL}"
+
+Devuelve una respuesta controlada. Pide la estructura mediante toolConfig o una salida
+estructurada compatible y vuelve a validarla en Lambda. Limita entrada, tokens, reintentos y
+concurrencia. Ajusta los timeouts del cliente y de Lambda para poder devolver un error antes del corte
+de API Gateway; no dejes el valor predeterminado de tres segundos de Lambda. A diferencia de la
+Sesión 8, donde se medía la capacidad del modelo sin ayudas de formato, aquí se construye un
+servicio y la robustez del JSON es un requisito.
+Mide sin suposiciones. Registra duración total, tiempo del modelo, tokens y errores. Identifica un
+arranque en frío mediante Init Duration o registros equivalentes y compáralo con al menos cinco
+peticiones calientes. Si no capturas uno, indícalo: no supongas que la primera petición fue fría.
+Calcula y explica. Estima 1.000 peticiones usando duración y memoria de Lambda, solicitudes de API
+Gateway y tokens de Bedrock, más logs relevantes. Declara región y tarifas; no ejecutes mil llamadas.
+Añade un párrafo sobre alternativas en Azure y Google Cloud y cuándo elegirías otra arquitectura por
+timeouts, streaming, latencia o tráfico sostenido.
+Ampliación opcional. Demuestra streaming si tu configuración lo permite; documenta sus permisos y
+límites por separado.
+Entrega y valoración. Entrega código, configuración, una petición válida, errores controlados,
+medidas, cálculo y limpieza de recursos. Se valorarán autenticación, permisos, JSON validado y
+análisis con datos observados. Dedicación orientativa: 4–6 horas activas con accesos preparados.
+
+
+
+
+                                                                                   AI Engineer · Ejercicios   6

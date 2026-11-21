@@ -1,0 +1,110 @@
+{
+  "dateRead": "2026-11-11",
+  "region": "eu-north-1",
+  "source": "AWS Price List API GetProducts (public catalogue; query endpoint us-east-1, no resources created there)",
+  "rates": [
+    {
+      "kind": "cpu",
+      "service": "AmazonECS",
+      "sku": "WYRS7KX9WP3W2KQ5",
+      "usageType": "EUN1-Fargate-vCPU-Hours:perCPU",
+      "unit": "hours",
+      "usd": "0.0445000000",
+      "description": "AWS Fargate - vCPU  - EU (Stockholm)",
+      "publicationDate": "2026-10-19T22:43:17Z",
+      "effectiveDate": "2026-10-01T00:00:00Z"
+    },
+    {
+      "kind": "memory",
+      "service": "AmazonECS",
+      "sku": "JG8R47GSTBBHHNX3",
+      "usageType": "EUN1-Fargate-GB-Hours",
+      "unit": "hours",
+      "usd": "0.0049000000",
+      "description": "AWS Fargate - Memory  - EU (Stockholm)",
+      "publicationDate": "2026-10-19T22:43:17Z",
+      "effectiveDate": "2026-10-01T00:00:00Z"
+    },
+    {
+      "kind": "ecr",
+      "service": "AmazonECR",
+      "sku": "YZ2F5ZZ8QJ8MVBSF",
+      "usageType": "EUN1-TimedStorage-ByteHrs",
+      "unit": "GB-Mo",
+      "usd": "0.1000000000",
+      "description": "USD 0.1 per GB-Mo for TimedStorage-ByteHrs in EU (Stockholm)",
+      "publicationDate": "2026-09-11T12:44:25Z",
+      "effectiveDate": "2025-11-01T00:00:00Z"
+    },
+    {
+      "kind": "logs_ingest",
+      "service": "AmazonCloudWatch",
+      "sku": "2WXCZPMH3FF7XAAZ",
+      "usageType": "EUN1-DataProcessing-Bytes",
+      "unit": "GB",
+      "usd": "0.5400000000",
+      "description": "$0.54 per GB custom log data ingested in Standard log class - EU (Stockholm)",
+      "publicationDate": "2026-11-04T21:35:32Z",
+      "effectiveDate": "2026-11-01T00:00:00Z"
+    },
+    {
+      "kind": "logs_storage",
+      "service": "AmazonCloudWatch",
+      "sku": "FC3W9RUMP83VDX52",
+      "usageType": "EUN1-TimedStorage-ByteHrs",
+      "unit": "GB-Mo",
+      "usd": "0.0280000000",
+      "description": "$0.028 per GB-mo of log storage - EU (Stockholm)",
+      "publicationDate": "2026-11-04T21:35:32Z",
+      "effectiveDate": "2026-11-01T00:00:00Z"
+    },
+    {
+      "kind": "secret",
+      "service": "AWSSecretsManager",
+      "sku": "7VFSFM2SK8GV8DGV",
+      "usageType": "EUN1-AWSSecretsManagerAPIRequest",
+      "unit": "API Requests",
+      "usd": "0.0000050000",
+      "description": "$0.05 per 10000 API Requests",
+      "publicationDate": "2026-09-11T12:46:10Z",
+      "effectiveDate": "2025-07-01T00:00:00Z"
+    },
+    {
+      "kind": "secret",
+      "service": "AWSSecretsManager",
+      "sku": "CMSG8A9ZU2DMCFPE",
+      "usageType": "EUN1-AWSSecretsManager-Secrets",
+      "unit": "Secrets",
+      "usd": "0.4000000000",
+      "description": "$0.40 per Secret",
+      "publicationDate": "2026-09-11T12:46:10Z",
+      "effectiveDate": "2025-07-01T00:00:00Z"
+    },
+    {
+      "kind": "ipv4",
+      "service": "AmazonVPC",
+      "sku": "H24SU884XW7MB5WC",
+      "usageType": "EUN1-PublicIPv4:InUseAddress",
+      "unit": "Hrs",
+      "usd": "0.0050000000",
+      "description": "$0.005 per In-use public IPv4 address per hour",
+      "publicationDate": "2026-11-05T18:19:45Z",
+      "effectiveDate": "2026-11-01T00:00:00Z"
+    }
+  ],
+  "estimates": {
+    "formula": "0.25 * 0.0445 + 0.5 * 0.0049 + 0.005",
+    "oneTaskAndIpv4UsdPerHour": 0.018575,
+    "twoHoursTaskAndIpv4Usd": 0.03715,
+    "computeIpv4AndOneSecret730HoursUsd": 13.95975,
+    "excludes": [
+      "logs",
+      "image storage",
+      "internet data transfer",
+      "secret API requests",
+      "OpenRouter inference",
+      "taxes"
+    ],
+    "notActualBill": true
+  }
+}

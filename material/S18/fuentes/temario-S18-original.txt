@@ -1,0 +1,58 @@
+thePower · AI Engineer · temario de la sesión 18 (texto original)
+
+Origen: correo de Laura Aguado (thePower), asunto «Re: Propuesta como profesor en thePower».
+Fecha del correo: 17/07/2026, 09:43 UTC.
+Id del mensaje en Gmail: 19f6f7569cc093d9 (hilo 19e45e5677b1ec54).
+Leído en Gmail el 16/11/2026 (solo lectura).
+Alcance de esta copia: únicamente el bloque de la sesión 18 del programa «IA ENGINEER» y, como
+contexto, las sesiones contiguas. Se han excluido saludos, firmas, datos de contacto, condiciones
+económicas, el otro programa y la correspondencia citada. La redacción original se conserva tal
+cual, incluidas sus erratas. En el correo, «cada cuadro en blanco es una sesión en directo».
+
+--- Sesión anterior en el temario (S17) ---
+
+SERVERLESS AI: AWS BEDROCK + LAMBDA
+Serverless AI: AWS Bedrock + Lambda Desplegar modelos y agentes sin
+gestionar servidores, usando los servicios de IA gestionada de los grandes
+proveedores.
+Serverless AI: AWS Bedrock + Lambda AWS bedrock / AWS Lambda / Alternaticas
+como Azure y Vertex AI / Consideraciones de coste, latencia y límites de
+las arquitecturas
+AWS Bedrock AWS Bedrock
+
+--- Sesión 18 ---
+
+CI/CD + MONITORIZACIÓN EN PRODUCCIÓN
+CI/CD + Monitorización en producción Llevar una aplicación de IA a
+producción con las mismas garantías de calidad que cualquier sistema de
+software.
+CI/CD + Monitorización en producción Conceptos básicos de CI CD y entornos
+/ CI CD con GitHub Actions / Logging, monitoringy APM / Error tracking /
+Gestión de variables de entorno y secretos en despliegue / Migraciones de
+base de datos en producción y despliegues sin downtime / Disaster recovery
+backups
+CI/CD Montar un pipeline de CI/CD con tests automaticos
+
+--- Sesión siguiente en el temario (S19) ---
+
+EVALUACIÓN Y TESTING DE SISTEMAS DE IA
+Evaluación y testing de sistemas de IA Cerrar el ciclo de calidad: medir de
+forma rigurosa si un sistema de IA funciona bien antes y después de cada
+cambio.
+Evaluación y testing de sistemas de IA Evaluación de modelos y metricas
+especificas / Analisis avanzado y metricas de produccion / Testing
+automatizado de agentes y pipelines RAG / Integración de la evaluación con
+las herramientas de observabilidad
+Construir un sistema RAG completo desde cero con evaluación y testing
+integrados
+
+--- Lectura de la estructura ---
+
+El bloque de S18 tiene tres líneas tras el título:
+1. Objetivo: llevar una aplicación de IA a producción con las mismas garantías de calidad que
+   cualquier sistema de software.
+2. Contenidos (siete, separados por «/»): conceptos básicos de CI/CD y entornos; CI/CD con GitHub
+   Actions; logging, monitoring y APM; error tracking; gestión de variables de entorno y secretos
+   en despliegue; migraciones de base de datos en producción y despliegues sin downtime; disaster
+   recovery y backups.
+3. Ejercicio: montar un pipeline de CI/CD con tests automáticos.

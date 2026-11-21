@@ -1,0 +1,358 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "S17: HTTP API IAM, Lambda versionada y Bedrock europeo con permisos acotados.",
+  "Parameters": {
+    "Lab": {
+      "Type": "String",
+      "AllowedPattern": "s17-[a-z0-9-]{3,30}"
+    },
+    "CodeBucket": {
+      "Type": "String"
+    },
+    "CodeKey": {
+      "Type": "String",
+      "AllowedPattern": "code/[a-f0-9]{64}\\.zip"
+    },
+    "CodeVersion": {
+      "Type": "String"
+    },
+    "CodeSha256": {
+      "Type": "String"
+    },
+    "AppVersion": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9._-]{1,80}"
+    },
+    "ProfileId": {
+      "Type": "String",
+      "AllowedPattern": "eu\\.[A-Za-z0-9.:-]+"
+    },
+    "ProfileArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:bedrock:eu-[a-z]+-[0-9]:[0-9]{12}:inference-profile/eu\\..+"
+    },
+    "FoundationModelArns": {
+      "Type": "CommaDelimitedList",
+      "AllowedPattern": "arn:aws:bedrock:eu-[a-z]+-[0-9]::foundation-model/.+"
+    }
+  },
+  "Resources": {
+    "LambdaLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/aws/lambda/${Lab}"
+        },
+        "RetentionInDays": 7
+      }
+    },
+    "ApiLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/thepower/${Lab}/http"
+        },
+        "RetentionInDays": 7
+      }
+    },
+    "Role": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "bedrock-y-logs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "LambdaLogs",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "bedrock:InvokeModel",
+                  "Resource": {
+                    "Ref": "ProfileArn"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "bedrock:InvokeModel",
+                  "Resource": {
+                    "Ref": "FoundationModelArns"
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "bedrock:InferenceProfileArn": {
+                        "Ref": "ProfileArn"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Function": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Lab"
+        },
+        "Runtime": "python3.12",
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "curso_ia.serverless.handler.lambda_handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "Role",
+            "Arn"
+          ]
+        },
+        "MemorySize": 512,
+        "Timeout": 24,
+        "ReservedConcurrentExecutions": 2,
+        "Code": {
+          "S3Bucket": {
+            "Ref": "CodeBucket"
+          },
+          "S3Key": {
+            "Ref": "CodeKey"
+          },
+          "S3ObjectVersion": {
+            "Ref": "CodeVersion"
+          }
+        },
+        "Environment": {
+          "Variables": {
+            "BEDROCK_MODEL_ID": {
+              "Ref": "ProfileId"
+            },
+            "S17_MODE": "real",
+            "APP_VERSION": {
+              "Ref": "AppVersion"
+            },
+            "S17_MAX_OUTPUT_TOKENS": "300"
+          }
+        },
+        "LoggingConfig": {
+          "LogFormat": "Text",
+          "LogGroup": {
+            "Ref": "LambdaLogs"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "thepower-produccion-ia"
+          },
+          {
+            "Key": "Lab",
+            "Value": {
+              "Ref": "Lab"
+            }
+          }
+        ]
+      }
+    },
+    "Version": {
+      "Type": "AWS::Lambda::Version",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "CodeSha256": {
+          "Ref": "CodeSha256"
+        },
+        "Description": {
+          "Ref": "AppVersion"
+        }
+      }
+    },
+    "Alias": {
+      "Type": "AWS::Lambda::Alias",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "FunctionVersion": {
+          "Fn::GetAtt": [
+            "Version",
+            "Version"
+          ]
+        },
+        "Name": "aula"
+      }
+    },
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": {
+          "Ref": "Lab"
+        },
+        "ProtocolType": "HTTP"
+      }
+    },
+    "Integration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "Alias",
+            "AliasArn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 29000
+      }
+    },
+    "Route": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /clasificar",
+        "AuthorizationType": "AWS_IAM",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "Stage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 2,
+          "ThrottlingRateLimit": 2
+        },
+        "AccessLogSettings": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "ApiLogs",
+              "Arn"
+            ]
+          },
+          "Format": "{\"request_id\":\"$context.requestId\",\"status\":\"$context.status\",\"latency_ms\":\"$context.responseLatency\"}"
+        }
+      }
+    },
+    "Permission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Ref": "Alias"
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        },
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/$default/POST/clasificar"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "Endpoint": {
+      "Value": {
+        "Fn::Sub": "https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/clasificar"
+      }
+    },
+    "ApiId": {
+      "Value": {
+        "Ref": "HttpApi"
+      }
+    },
+    "InvokeArn": {
+      "Value": {
+        "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/$default/POST/clasificar"
+      }
+    },
+    "FunctionName": {
+      "Value": {
+        "Ref": "Function"
+      }
+    },
+    "AliasArn": {
+      "Value": {
+        "Ref": "Alias"
+      }
+    },
+    "FunctionVersion": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Version",
+          "Version"
+        ]
+      }
+    },
+    "CodeSha256": {
+      "Value": {
+        "Ref": "CodeSha256"
+      }
+    },
+    "AppVersion": {
+      "Value": {
+        "Ref": "AppVersion"
+      }
+    },
+    "LambdaLogGroup": {
+      "Value": {
+        "Ref": "LambdaLogs"
+      }
+    },
+    "ApiLogGroup": {
+      "Value": {
+        "Ref": "ApiLogs"
+      }
+    },
+    "ProfileId": {
+      "Value": {
+        "Ref": "ProfileId"
+      }
+    }
+  }
+}

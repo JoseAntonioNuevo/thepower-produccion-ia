@@ -1,0 +1,36 @@
+diff --git a/app.py b/app.py
+index 21f9b13..2c06f88 100644
+--- a/app.py
++++ b/app.py
+@@ -38,7 +38,7 @@ class Clasificacion(BaseModel):
+ 
+ 
+ # Plazo de atención según la prioridad (novedad de la versión B).
+-SLA_HORAS = {"alta": 4, "media": 24}
++SLA_HORAS = {"alta": 4, "media": 24, "baja": 72}
+ 
+ 
+ class ErrorProveedor(Exception):
+diff --git a/tests/test_api.py b/tests/test_api.py
+index af2165c..2471ef3 100644
+--- a/tests/test_api.py
++++ b/tests/test_api.py
+@@ -85,6 +85,18 @@ def test_la_respuesta_incluye_el_plazo_de_atencion():
+     assert datos["sla_horas"] == 24
+ 
+ 
++@pytest.mark.parametrize(("prioridad", "horas"), [("alta", 4), ("media", 24), ("baja", 72)])
++def test_todas_las_prioridades_tienen_plazo(prioridad, horas):
++    class DobleConPrioridad(DobleCorrecto):
++        async def clasificar(self, texto: str) -> Clasificacion:
++            return Clasificacion(categoria="consulta", prioridad=prioridad, respuesta="Ok.")
++
++    with TestClient(crear_app(DobleConPrioridad())) as cliente:
++        respuesta = cliente.post("/clasificar", json={"texto": "Tengo una duda"})
++    assert respuesta.status_code == 200
++    assert respuesta.json()["sla_horas"] == horas
++
++
+ # ------------------------------------------------- caso 2: entrada inválida
+ @pytest.mark.parametrize(
+     "cuerpo",

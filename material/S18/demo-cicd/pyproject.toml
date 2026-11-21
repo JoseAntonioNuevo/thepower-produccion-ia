@@ -1,0 +1,26 @@
+[project]
+name = "thepower-cicd"
+version = "1.0.0"
+description = "S18 · API de soporte con CI/CD y monitorización (demo de clase)"
+requires-python = ">=3.12,<3.13"
+# Versiones exactas: el lock (uv.lock) añade además los hashes de cada paquete.
+dependencies = ["fastapi==0.143.3", "httpx==0.28.1", "pydantic==2.14.1", "uvicorn==0.54.0"]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ruff==0.17.1", "cfn-lint==1.57.2"]
+
+[tool.uv]
+# Es una aplicación, no una librería: uv instala dependencias, no empaqueta el proyecto.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

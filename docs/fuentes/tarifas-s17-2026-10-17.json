@@ -1,0 +1,118 @@
+{
+  "region": "eu-west-1",
+  "fecha_lectura": "2026-10-17",
+  "profile_id": "eu.amazon.nova-2-lite-v1:0",
+  "tier": "standard, no global/flex/priority/batch",
+  "rates": {
+    "lambda_gbs": {
+      "service": "AWSLambda",
+      "sku": "SGGKTWDV7PGMPPSJ",
+      "usage": "EU-Lambda-GB-Second",
+      "usd": "0.0000166667",
+      "unit": "Lambda-GB-Second",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-16T18:23:59Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/eu-west-1/index.json"
+    },
+    "lambda_request": {
+      "service": "AWSLambda",
+      "sku": "B5V2RNHAWGVJBZD3",
+      "usage": "EU-Request",
+      "usd": "0.0000002000",
+      "unit": "Request",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-16T18:23:59Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/eu-west-1/index.json"
+    },
+    "api_request": {
+      "service": "AmazonApiGateway",
+      "sku": "WPZ6JK7P27W4K4QK",
+      "usage": "EU-ApiGatewayHttpRequest",
+      "usd": "0.0000011100",
+      "unit": "Requests",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-13T00:30:44Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonApiGateway/current/eu-west-1/index.json"
+    },
+    "input_1k": {
+      "service": "AmazonBedrock",
+      "sku": "9SA62DABTNVC54QD",
+      "usage": "EU-Nova2.0Lite-input-tokens",
+      "usd": "0.0003740000",
+      "unit": "1K tokens",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-16T21:08:06Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrock/current/eu-west-1/index.json"
+    },
+    "output_1k": {
+      "service": "AmazonBedrock",
+      "sku": "MS5NRRE5W7HUKR3T",
+      "usage": "EU-Nova2.0Lite-output-tokens",
+      "usd": "0.0031570000",
+      "unit": "1K tokens",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-16T21:08:06Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrock/current/eu-west-1/index.json"
+    },
+    "logs_ingest_gb": {
+      "service": "AmazonCloudWatch",
+      "sku": "KJBTQPDHW2H92B8Y",
+      "usage": "EU-DataProcessing-Bytes",
+      "usd": "0.5700000000",
+      "unit": "GB",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-07T11:55:40Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+    },
+    "logs_store_gb_month": {
+      "service": "AmazonCloudWatch",
+      "sku": "M93YPPU987S2T6U9",
+      "usage": "EU-TimedStorage-ByteHrs",
+      "usd": "0.0300000000",
+      "unit": "GB-Mo",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-07T11:55:40Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+    },
+    "s3_gb_month": {
+      "service": "AmazonS3",
+      "sku": "4AJHPB29ZPVFADXP",
+      "usage": "EU-TimedStorage-ByteHrs",
+      "usd": "0.0230000000",
+      "unit": "GB-Mo",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-15T17:35:40Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json"
+    },
+    "s3_put": {
+      "service": "AmazonS3",
+      "sku": "578M9UJHH6X5PZVC",
+      "usage": "EU-Requests-Tier1",
+      "usd": "0.0000050000",
+      "unit": "Requests",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-15T17:35:40Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json"
+    },
+    "s3_get": {
+      "service": "AmazonS3",
+      "sku": "ZCQD4CM637S7D8U5",
+      "usage": "EU-Requests-Tier2",
+      "usd": "0.0000004000",
+      "unit": "Requests",
+      "effective": "2026-10-01T00:00:00Z",
+      "publication": "2026-10-15T17:35:40Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json"
+    },
+    "egress_gb": {
+      "service": "AWSDataTransfer",
+      "sku": "FSEU4E6BRE95JTX8",
+      "usage": "EU-DataTransfer-Out-Bytes",
+      "usd": "0.0900000000",
+      "unit": "GB",
+      "effective": "2026-06-01T00:00:00Z",
+      "publication": "2026-09-16T13:22:08Z",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/eu-west-1/index.json"
+    }
+  }
+}

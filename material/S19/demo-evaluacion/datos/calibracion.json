@@ -1,0 +1,54 @@
+{
+  "doble": {
+    "umbral_evidencia": 0.2787,
+    "embedding_modelo": "doble-hash-768",
+    "indice_id": "idx-1ad935d31767",
+    "config_id": "A",
+    "conjunto": "validacion",
+    "decisiones_correctas": "7/8",
+    "fijado": "2026-11-17",
+    "similitudes": [
+      {
+        "caso_id": "V01",
+        "respondible": true,
+        "mejor_similitud": 0.327
+      },
+      {
+        "caso_id": "V02",
+        "respondible": true,
+        "mejor_similitud": 0.5661
+      },
+      {
+        "caso_id": "V03",
+        "respondible": true,
+        "mejor_similitud": 0.6107
+      },
+      {
+        "caso_id": "V04",
+        "respondible": true,
+        "mejor_similitud": 0.5566
+      },
+      {
+        "caso_id": "V05",
+        "respondible": true,
+        "mejor_similitud": 0.3921
+      },
+      {
+        "caso_id": "V06",
+        "respondible": false,
+        "mejor_similitud": 0.3706
+      },
+      {
+        "caso_id": "V07",
+        "respondible": false,
+        "mejor_similitud": 0.0967
+      },
+      {
+        "caso_id": "V08",
+        "respondible": false,
+        "mejor_similitud": 0.2303
+      }
+    ],
+    "aviso": "PERFIL DOBLE: embeddings por hash de palabras y generador extractivo locales. Estas cifras comprueban el funcionamiento del sistema de evaluación; NO miden ningún modelo."
+  }
+}

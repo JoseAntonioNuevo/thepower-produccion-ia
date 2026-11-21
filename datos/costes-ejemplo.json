@@ -1,0 +1,151 @@
+{
+  "tipo": "estimacion_con_tarifas_publicas_y_consumos_supuestos",
+  "region": "eu-west-1",
+  "fecha_tarifas": "2026-10-17",
+  "supuestos": [
+    "USD sin impuestos ni descuentos ni créditos",
+    "Una tarea Linux x86; 0.25 vCPU, 0.5 GB, almacenamiento efímero incluido sin ampliación",
+    "El escenario de 90 minutos conserva ECR y un secreto durante el mes; retirarlos reduce ese remanente",
+    "GB de salida ya facturables tras el tramo gratuito global; no se presupone franquicia disponible",
+    "Sin NAT, ALB, base de datos ni KMS propia; si se añaden hay que incorporarlos",
+    "Inferencia externa separada; cantidades de logs y tráfico son supuestos, no mediciones"
+  ],
+  "escenarios": [
+    {
+      "nombre": "730 horas, una tarea de 0.25 vCPU y 0.5 GB",
+      "conceptos": [
+        {
+          "concepto": "CPU",
+          "unidad": "vCPU-h",
+          "cantidad": 182.5,
+          "tarifa_usd": 0.04048,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Memoria",
+          "unidad": "GB-h",
+          "cantidad": 365,
+          "tarifa_usd": 0.004445,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "IPv4 pública",
+          "unidad": "IP-h",
+          "cantidad": 730,
+          "tarifa_usd": 0.005,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "ECR",
+          "unidad": "GB-mes",
+          "cantidad": 0.25,
+          "tarifa_usd": 0.1,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECR/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Logs ingeridos",
+          "unidad": "GB",
+          "cantidad": 1,
+          "tarifa_usd": 0.57,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Logs almacenados",
+          "unidad": "GB-mes",
+          "cantidad": 1,
+          "tarifa_usd": 0.03,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Secreto conservado",
+          "unidad": "secreto-mes",
+          "cantidad": 1,
+          "tarifa_usd": 0.4,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Lecturas del secreto",
+          "unidad": "petición",
+          "cantidad": 2,
+          "tarifa_usd": 5e-06,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Salida a Internet",
+          "unidad": "GB facturable",
+          "cantidad": 1,
+          "tarifa_usd": 0.09,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/eu-west-1/index.json"
+        }
+      ]
+    },
+    {
+      "nombre": "90 minutos; ECR, logs y secreto conservados 30 días",
+      "conceptos": [
+        {
+          "concepto": "CPU",
+          "unidad": "vCPU-h",
+          "cantidad": 0.375,
+          "tarifa_usd": 0.04048,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Memoria",
+          "unidad": "GB-h",
+          "cantidad": 0.75,
+          "tarifa_usd": 0.004445,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "IPv4 pública",
+          "unidad": "IP-h",
+          "cantidad": 1.5,
+          "tarifa_usd": 0.005,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "ECR",
+          "unidad": "GB-mes",
+          "cantidad": 0.25,
+          "tarifa_usd": 0.1,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECR/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Logs ingeridos",
+          "unidad": "GB",
+          "cantidad": 0.01,
+          "tarifa_usd": 0.57,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Logs almacenados",
+          "unidad": "GB-mes",
+          "cantidad": 0.01,
+          "tarifa_usd": 0.03,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Secreto conservado",
+          "unidad": "secreto-mes",
+          "cantidad": 1,
+          "tarifa_usd": 0.4,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Lecturas del secreto",
+          "unidad": "petición",
+          "cantidad": 1,
+          "tarifa_usd": 5e-06,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/eu-west-1/index.json"
+        },
+        {
+          "concepto": "Salida a Internet",
+          "unidad": "GB facturable",
+          "cantidad": 0.001,
+          "tarifa_usd": 0.09,
+          "fuente": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/eu-west-1/index.json"
+        }
+      ]
+    }
+  ]
+}

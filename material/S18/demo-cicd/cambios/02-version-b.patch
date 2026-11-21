@@ -1,0 +1,40 @@
+diff --git a/app.py b/app.py
+index f153828..21f9b13 100644
+--- a/app.py
++++ b/app.py
+@@ -37,6 +37,10 @@ class Clasificacion(BaseModel):
+     respuesta: str = Field(min_length=1, max_length=500)
+ 
+ 
++# Plazo de atención según la prioridad (novedad de la versión B).
++SLA_HORAS = {"alta": 4, "media": 24}
++
++
+ class ErrorProveedor(Exception):
+     """El proveedor falló. Solo guarda un código público, nunca el cuerpo remoto."""
+ 
+@@ -274,6 +278,7 @@ def crear_app(proveedor: Proveedor | None = None) -> FastAPI:
+             "version": version,
+             "request_id": request.state.request_id,
+             "resultado": resultado.model_dump(),
++            "sla_horas": SLA_HORAS[resultado.prioridad],
+         }
+ 
+     return app
+diff --git a/tests/test_api.py b/tests/test_api.py
+index 0b5188e..af2165c 100644
+--- a/tests/test_api.py
++++ b/tests/test_api.py
+@@ -79,6 +79,12 @@ def test_respuesta_valida():
+     assert doble.llamadas == 1
+ 
+ 
++def test_la_respuesta_incluye_el_plazo_de_atencion():
++    with TestClient(crear_app(DobleCorrecto())) as cliente:
++        datos = cliente.post("/clasificar", json={"texto": "No puedo entrar"}).json()
++    assert datos["sla_horas"] == 24
++
++
+ # ------------------------------------------------- caso 2: entrada inválida
+ @pytest.mark.parametrize(
+     "cuerpo",

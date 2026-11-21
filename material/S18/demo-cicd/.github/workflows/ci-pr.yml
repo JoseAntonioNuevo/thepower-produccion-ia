@@ -1,0 +1,22 @@
+# Integración continua: se ejecuta en cada pull request hacia main.
+# Este workflow NO puede obtener credenciales de AWS:
+#   - no declara «id-token: write», así que no puede pedir un token OIDC;
+#   - aunque alguien lo añadiera en su rama, el «sub» del token sería
+#     «…:pull_request» y ningún rol de AWS confía en ese valor.
+name: CI · pull request
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Si se suben más commits a la misma PR, se cancela la ejecución anterior.
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  comprobaciones:
+    uses: ./.github/workflows/comprobaciones.yml

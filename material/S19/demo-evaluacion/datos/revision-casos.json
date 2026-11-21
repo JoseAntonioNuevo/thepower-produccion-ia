@@ -1,0 +1,12 @@
+{
+  "fijado": "2026-11-16",
+  "regla": "Casos elegidos ANTES de ejecutar el test: cuatro respondibles (dos de un documento y dos que combinan dos documentos) y dos sin respuesta. Si aparece una discrepancia en otro caso, se añade; no se quita ninguno.",
+  "casos": [
+    "T02",
+    "T07",
+    "T12",
+    "T14",
+    "T16",
+    "T18"
+  ]
+}

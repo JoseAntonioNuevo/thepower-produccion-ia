@@ -1,0 +1,18 @@
+diff --git a/app.py b/app.py
+index f153828..606a934 100644
+--- a/app.py
++++ b/app.py
+@@ -261,6 +261,13 @@ def crear_app(proveedor: Proveedor | None = None) -> FastAPI:
+         inicio = time.perf_counter()
+         try:
+             resultado = await proveedor.clasificar(incidencia.texto)
++        except ErrorProveedor:
++            # «Mejora» bienintencionada: si el proveedor falla, respondemos algo por defecto.
++            resultado = Clasificacion(
++                categoria="consulta",
++                prioridad="media",
++                respuesta="Hemos recibido tu incidencia y la revisaremos.",
++            )
+         finally:
+             # Tiempo del proveedor aparte del total: distingue nuestra API del modelo.
+             request.state.detalle["proveedor_ms"] = round((time.perf_counter() - inicio) * 1000, 1)

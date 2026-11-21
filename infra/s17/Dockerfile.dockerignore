@@ -1,0 +1,13 @@
+# Este archivo sustituye al dockerignore de S16 para esta construcción específica.
+*
+!infra/
+!infra/s17/
+!infra/s17/requirements.lock
+!src/
+!src/curso_ia/
+!src/curso_ia/__init__.py
+!src/curso_ia/contratos.py
+!src/curso_ia/serverless/
+!src/curso_ia/serverless/**
+src/**/__pycache__/
+src/**/*.pyc

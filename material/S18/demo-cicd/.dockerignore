@@ -1,0 +1,4 @@
+# Solo enviamos a Docker lo necesario; claves, tests y archivos locales quedan fuera.
+*
+!app.py
+!requirements.lock

@@ -1,0 +1,23 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "S16: registro privado de imagenes del laboratorio; sin imagen ni secreto.",
+  "Parameters": {
+    "Lab": {"Type": "String", "AllowedPattern": "s16-[a-z0-9-]{3,30}"}
+  },
+  "Resources": {
+    "Repositorio": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {"Ref": "Lab"},
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {"ScanOnPush": true},
+        "EncryptionConfiguration": {"EncryptionType": "AES256"},
+        "Tags": [{"Key": "Project", "Value": "thepower-produccion-ia"}, {"Key": "Lab", "Value": {"Ref": "Lab"}}]
+      }
+    }
+  },
+  "Outputs": {
+    "RepositoryUri": {"Value": {"Fn::GetAtt": ["Repositorio", "RepositoryUri"]}},
+    "RepositoryName": {"Value": {"Ref": "Repositorio"}}
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "fecha": "2026-11-17T10:46:53",
+  "config": {
+    "perfil": "doble",
+    "almacen": "postgres",
+    "modelo_chat": "doble-reglas",
+    "modelo_embeddings": "doble-hash-768",
+    "prompt_version": "v1",
+    "max_herramientas": 4,
+    "k_fragmentos": 3,
+    "umbral_evidencia": 0.2,
+    "mcp_timeout_s": 10.0,
+    "fuentes": "locales",
+    "max_consultas": 3,
+    "max_fuentes": 3,
+    "max_bytes_fuente": 1500000,
+    "max_segundos_investigacion": 30.0,
+    "usuarios": [
+      "ana",
+      "luis"
+    ],
+    "langfuse": false
+  },
+  "comprobaciones": {
+    "directo_sin_herramientas": true,
+    "ticket_por_mcp": true,
+    "inexistente_explicito": true,
+    "rag_con_cita": true,
+    "rechazo_sin_fuentes": true,
+    "caso_usa_tres_herramientas": true,
+    "investigacion_no_se_duplica": true,
+    "informe_con_fuentes_publicas": true,
+    "memoria_recuerda_ticket": true,
+    "aislamiento_entre_usuarios": true
+  },
+  "todo_ok": true,
+  "pasos": {
+    "1_directo": {
+      "mensaje": "Hola, ¿qué puedes hacer?",
+      "respuesta": "Hola. Puedo consultar un ticket (por ejemplo T-100), buscar una política en la documentación de AetherCloud o registrar una investigación.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente"
+      ],
+      "herramientas": [],
+      "fuentes": [],
+      "errores": []
+    },
+    "2_ticket_mcp": {
+      "mensaje": "¿En qué estado está el ticket T-200?",
+      "respuesta": "Ticket T-200 (pendiente de información, plan Empresa): Solicitud de crédito de servicio por disponibilidad del 99,20 % en octubre. El cliente indica que la disponibilidad mensual fue del 99,20 % y pide el crédito que corresponda. No adjunta los identificadores de incidencia.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente",
+        "herramientas",
+        "agente"
+      ],
+      "herramientas": [
+        {
+          "nombre": "consultar_ticket",
+          "ok": true,
+          "ms": 266
+        }
+      ],
+      "fuentes": [
+        "ticket:T-200"
+      ],
+      "errores": []
+    },
+    "3_ticket_inexistente": {
+      "mensaje": "Consulta el ticket T-999",
+      "respuesta": "El ticket T-999 no existe en el sistema de tickets.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente",
+        "herramientas",
+        "agente"
+      ],
+      "herramientas": [
+        {
+          "nombre": "consultar_ticket",
+          "ok": false,
+          "ms": 248
+        }
+      ],
+      "fuentes": [],
+      "errores": []
+    },
+    "4_rag_con_cita": {
+      "mensaje": "¿Cuál es el límite de peticiones del plan Estándar?",
+      "respuesta": "Política aplicable: La pasarela aplica control de tasa por ventana deslizante de 60 segundos a cada organización (`X-Aether-Tenant`): - **Plan Estándar:** hasta 120 peticiones por minuto y un máximo de 10 peticiones concurrentes. - **Plan Empresa:** hasta 600 peticiones por minuto y un máximo de 50 peticiones concurrentes. Las peticiones de lectura sobre `/v2/status` no descuentan del cupo por minuto, pero sí respetan el límite de concurrencia. [03-limites-y-cuotas-api § Cuotas por plan de suscripción]\nPolítica aplicable: AetherCloud ofrece dos planes comerciales facturados en euros (`EUR`) a mes vencido: - **Plan Estándar:** cuota base de `190 EUR/mes`, incluye 2 millones de peticiones API, 100 GiB de almacenamiento cifrado y soporte en horario laboral europeo. - **Plan Empresa:** cuota base de `850 EUR/mes`, incluye 15 millones de peticiones API, 1 TiB de almacenamiento cifrado, soporte 24x7 para `SEV-1` y réplica activa en `eu-fra-1`. [07-facturacion-y-planes § Cuotas mensuales y franquicias incluidas]\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente",
+        "herramientas",
+        "agente"
+      ],
+      "herramientas": [
+        {
+          "nombre": "buscar_documentacion",
+          "ok": true,
+          "ms": 4
+        }
+      ],
+      "fuentes": [
+        "doc:03-limites-y-cuotas-api § Cuotas por plan de suscripción",
+        "doc:07-facturacion-y-planes § Cuotas mensuales y franquicias incluidas"
+      ],
+      "errores": []
+    },
+    "5_rechazo": {
+      "mensaje": "¿Cuál es la política de teletrabajo de los empleados?",
+      "respuesta": "No consta en la documentación de AetherCloud: no puedo responder a eso con fuentes.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente",
+        "herramientas",
+        "agente"
+      ],
+      "herramientas": [
+        {
+          "nombre": "buscar_documentacion",
+          "ok": false,
+          "ms": 2
+        }
+      ],
+      "fuentes": [],
+      "errores": []
+    },
+    "6_caso_completo": {
+      "mensaje": "El ticket T-100 sigue abierto. Resume el problema, consulta la política aplicable y prepara una recomendación con fuentes. Si falta información pública, investígala.",
+      "respuesta": "Ticket T-100 (abierto, plan Estándar): La API devuelve 429 RATE_LIMIT_EXCEEDED durante la carga nocturna. Desde el lunes, la sincronización nocturna recibe respuestas 429 con error_code RATE_LIMIT_EXCEEDED al enviar unas 300 peticiones por minuto. El cliente pregunta si es una avería y cómo debe reintentar.\nPolítica aplicable: Cuando una organización supera su límite por minuto, la API responde con estado HTTP `429 Too Many Requests`, cuerpo JSON con `error_code: \"RATE_LIMIT_EXCEEDED\"` y la cabecera `Retry-After` expresada en segundos enteros. El tamaño máximo de cuerpo permitido en cualquier petición `POST` es de 4 MiB. [03-limites-y-cuotas-api § Respuesta ante exceso de cuota]\nHe registrado la investigación INV-5ef4156a (estado: pendiente). Consulta su estado cuando termine.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente",
+        "herramientas",
+        "agente",
+        "herramientas",
+        "agente",
+        "herramientas",
+        "agente"
+      ],
+      "herramientas": [
+        {
+          "nombre": "consultar_ticket",
+          "ok": true,
+          "ms": 253
+        },
+        {
+          "nombre": "buscar_documentacion",
+          "ok": true,
+          "ms": 3
+        },
+        {
+          "nombre": "investigar",
+          "ok": true,
+          "ms": 3
+        }
+      ],
+      "fuentes": [
+        "ticket:T-100",
+        "doc:03-limites-y-cuotas-api § Respuesta ante exceso de cuota"
+      ],
+      "errores": []
+    },
+    "6b_ejecutor": {
+      "trabajos_procesados": [
+        "INV-5ef4156a"
+      ]
+    },
+    "6c_consulta_posterior": {
+      "mensaje": "El ticket T-100 sigue abierto. Resume el problema, consulta la política aplicable y prepara una recomendación con fuentes. Si falta información pública, investígala.",
+      "respuesta": "Ticket T-100 (abierto, plan Estándar): La API devuelve 429 RATE_LIMIT_EXCEEDED durante la carga nocturna. Desde el lunes, la sincronización nocturna recibe respuestas 429 con error_code RATE_LIMIT_EXCEEDED al enviar unas 300 peticiones por minuto. El cliente pregunta si es una avería y cómo debe reintentar.\nPolítica aplicable: Cuando una organización supera su límite por minuto, la API responde con estado HTTP `429 Too Many Requests`, cuerpo JSON con `error_code: \"RATE_LIMIT_EXCEEDED\"` y la cabecera `Retry-After` expresada en segundos enteros. El tamaño máximo de cuerpo permitido en cualquier petición `POST` es de 4 MiB. [03-limites-y-cuotas-api § Respuesta ante exceso de cuota]\nInvestigación INV-5ef4156a (completo): Investigación completo sobre: HTTP 429 Too Many Requests y cabecera Retry-After.\nPolítica interna [03-limites-y-cuotas-api § Respuesta ante exceso de cuota]: Cuando una organización supera su límite por minuto, la API responde con estado HTTP `429 Too Many Requests`, cuerpo JSON con `error_code: \"RATE_LIMIT_EXCEEDED\"` y la cabecera `Retry-After` expresada en segundos enteros. El tamaño máximo de cuerpo permitido en cualquier petición `POST` es de 4 MiB.\nInformación pública [rfc6585-429]: El código de estado 429 Too Many Requests indica que el usuario ha enviado demasiadas peticiones en un periodo de tiempo determinado; es el código previsto para la limitación de tasa (rate limiting).\nInformación pública [rfc9110-retry-after]: El valor de Retry-After puede ser una fecha HTTP o un número de segundos de espera contados desde que se recibe la respuesta; los segundos se expresan como un entero decimal no negativo.\nLa información pública no sustituye a una política interna que falte.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente",
+        "herramientas",
+        "agente",
+        "herramientas",
+        "agente",
+        "herramientas",
+        "agente"
+      ],
+      "herramientas": [
+        {
+          "nombre": "consultar_ticket",
+          "ok": true,
+          "ms": 245
+        },
+        {
+          "nombre": "buscar_documentacion",
+          "ok": true,
+          "ms": 3
+        },
+        {
+          "nombre": "investigar",
+          "ok": true,
+          "ms": 3
+        }
+      ],
+      "fuentes": [
+        "ticket:T-100",
+        "doc:03-limites-y-cuotas-api § Respuesta ante exceso de cuota",
+        "web:rfc6585-429",
+        "web:rfc9110-retry-after"
+      ],
+      "errores": []
+    },
+    "6d_informe": {
+      "tema": "HTTP 429 Too Many Requests y cabecera Retry-After",
+      "aviso": "La información pública no sustituye a una política interna que falte.",
+      "estado": "completo",
+      "faltan": [],
+      "consumo": {
+        "tokens": null,
+        "segundos": 0.0,
+        "coste_usd": null,
+        "bytes_leidos": 1721,
+        "fuentes_leidas": 2,
+        "llamadas_modelo": 0
+      },
+      "errores": [],
+      "limites": {
+        "max_fuentes": 3,
+        "max_segundos": 30.0,
+        "max_consultas": 3,
+        "max_bytes_fuente": 1500000
+      },
+      "resumen": "Investigación completo sobre: HTTP 429 Too Many Requests y cabecera Retry-After.\nPolítica interna [03-limites-y-cuotas-api § Respuesta ante exceso de cuota]: Cuando una organización supera su límite por minuto, la API responde con estado HTTP `429 Too Many Requests`, cuerpo JSON con `error_code: \"RATE_LIMIT_EXCEEDED\"` y la cabecera `Retry-After` expresada en segundos enteros. El tamaño máximo de cuerpo permitido en cualquier petición `POST` es de 4 MiB.\nInformación pública [rfc6585-429]: El código de estado 429 Too Many Requests indica que el usuario ha enviado demasiadas peticiones en un periodo de tiempo determinado; es el código previsto para la limitación de tasa (rate limiting).\nInformación pública [rfc9110-retry-after]: El valor de Retry-After puede ser una fecha HTTP o un número de segundos de espera contados desde que se recibe la respuesta; los segundos se expresan como un entero decimal no negativo.\nLa información pública no sustituye a una política interna que falte.",
+      "consultas": [
+        "HTTP 429 Too Many Requests",
+        "cabecera Retry-After"
+      ],
+      "politica_interna": [
+        {
+          "cita": "03-limites-y-cuotas-api § Respuesta ante exceso de cuota",
+          "texto": "Cuando una organización supera su límite por minuto, la API responde con estado HTTP `429 Too Many Requests`, cuerpo JSON con `error_code: \"RATE_LIMIT_EXCEEDED\"` y la cabecera `Retry-After` expresada en segundos enteros. El tamaño máximo de cuerpo permitido en cualquier petición `POST` es de 4 MiB."
+        }
+      ],
+      "informacion_publica": [
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc6585.txt",
+          "origen": "copia_de_aula",
+          "titulo": "RFC 6585 · sección 4 · 429 Too Many Requests",
+          "consulta": "HTTP 429 Too Many Requests",
+          "extracto": "El código de estado 429 Too Many Requests indica que el usuario ha enviado demasiadas peticiones en un periodo de tiempo determinado; es el código previsto para la limitación de tasa (rate limiting).",
+          "fuente_id": "rfc6585-429"
+        },
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+          "origen": "copia_de_aula",
+          "titulo": "RFC 9110 · sección 10.2.3 · Retry-After",
+          "consulta": "cabecera Retry-After",
+          "extracto": "El valor de Retry-After puede ser una fecha HTTP o un número de segundos de espera contados desde que se recibe la respuesta; los segundos se expresan como un entero decimal no negativo.",
+          "fuente_id": "rfc9110-retry-after"
+        }
+      ]
+    },
+    "7_memoria": {
+      "mensaje": "¿Qué ticket estábamos viendo?",
+      "respuesta": "En esta conversación hemos visto el ticket T-200.\n[perfil doble · reglas, sin modelo]",
+      "ruta": [
+        "inicio",
+        "agente"
+      ],
+      "herramientas": [],
+      "fuentes": [],
+      "errores": []
+    },
+    "8_aislamiento": {
+      "bloqueado": true,
+      "detalle": "luis no puede leer el hilo de ana"
+    }
+  }
+}

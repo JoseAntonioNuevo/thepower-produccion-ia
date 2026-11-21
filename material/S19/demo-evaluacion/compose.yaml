@@ -1,0 +1,21 @@
+# PostgreSQL 17 con pgvector para la práctica de S19.
+# Puerto NO estándar y solo en loopback: no choca con otro PostgreSQL ni con el laboratorio de S10.
+services:
+  pgvector:
+    image: pgvector/pgvector:pg17
+    container_name: thepower-s19-pgvector
+    environment:
+      # Credenciales ficticias de un contenedor local de práctica; no son un secreto.
+      POSTGRES_USER: s19
+      POSTGRES_PASSWORD: s19_aula_local
+      POSTGRES_DB: s19_rag
+    ports:
+      - "127.0.0.1:54519:5432"
+    volumes:
+      # Solo se aplica al crear la base vacía. `s19.py ingestar` también lo aplica (idempotente).
+      - ./esquema.sql:/docker-entrypoint-initdb.d/01-esquema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U s19 -d s19_rag"]
+      interval: 3s
+      timeout: 3s
+      retries: 20

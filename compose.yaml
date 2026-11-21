@@ -1,0 +1,16 @@
+# Solo un servicio: S16 no necesita base de datos ni un frontend.
+services:
+  api:
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-desarrollo-local}
+    ports:
+      - "127.0.0.1:8016:8000"
+    environment:
+      API_MODE: ${API_MODE:-demo}
+      MODEL_ID: ${MODEL_ID:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]

@@ -1,0 +1,37 @@
+# Diagnóstico: muestra los datos (claims) del token OIDC que GitHub emite para un job
+# del entorno «staging». Sirve para copiar el «sub» real en la confianza del rol de AWS.
+# No asume ningún rol ni toca AWS. El token nunca se imprime: solo sus claims, que no
+# son secretos.
+name: Diagnóstico · OIDC
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  claims:
+    name: Leer sub y aud
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: staging
+    permissions:
+      id-token: write
+    steps:
+      - name: Mostrar los claims del token
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            // Pedimos el token con la misma audiencia que usa la acción oficial de AWS.
+            const token = await core.getIDToken('sts.amazonaws.com');
+            core.setSecret(token);
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            const campos = ['sub', 'aud', 'iss', 'repository', 'repository_id',
+              'repository_owner_id', 'environment', 'ref', 'event_name'];
+            for (const campo of campos) core.info(`${campo}: ${claims[campo]}`);
+            await core.summary
+              .addHeading('Claims del token OIDC', 3)
+              .addTable([['Claim', 'Valor'], ...campos.map((c) => [c, String(claims[c])])])
+              .addRaw('La confianza del rol de despliegue debe exigir exactamente este «sub» y «aud».')
+              .write();

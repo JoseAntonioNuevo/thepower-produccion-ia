@@ -1,0 +1,81 @@
+{
+  "family": "s16-thepower-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/s16-thepower-ecs-execution",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "123456789012.dkr.ecr.eu-north-1.amazonaws.com/s16-clasificador:1",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "environment": [
+        {
+          "name": "API_MODE",
+          "value": "real"
+        },
+        {
+          "name": "OPENROUTER_MODEL",
+          "value": "openai/gpt-6-luna"
+        },
+        {
+          "name": "OPENROUTER_PROVIDER",
+          "value": "openai/fast"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "OPENROUTER_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/s16/thepower/api",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "api",
+          "mode": "non-blocking",
+          "max-buffer-size": "1m"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 20
+      },
+      "readonlyRootFilesystem": true
+    }
+  ],
+  "tags": [
+    {
+      "key": "Project",
+      "value": "thepower-s16"
+    },
+    {
+      "key": "Purpose",
+      "value": "classroom-demo"
+    }
+  ]
+}

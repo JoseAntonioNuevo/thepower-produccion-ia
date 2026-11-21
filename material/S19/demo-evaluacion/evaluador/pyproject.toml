@@ -1,0 +1,26 @@
+[project]
+name = "s19-evaluador"
+version = "0.1.0"
+description = "Entorno AISLADO del evaluador de S19: Ragas con las versiones fijadas por el enunciado"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Versiones fijadas por el enunciado de S19. No se cambian sin dejarlo por escrito.
+    "ragas==0.4.3",
+    "langchain-community==0.3.31",
+    # Cliente de Gemini para la ruta de la guía «Ragas con Gemini». La ruta compatible con
+    # OpenAI usa el paquete `openai`, que ya es dependencia de Ragas.
+    "google-genai==3.3.0",
+]
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra -m 'not llm' -p no:cacheprovider"
+markers = ["llm: evaluación real con el juez de pago; exige claves y S19_EJECUTAR_REAL=1"]
+filterwarnings = ["ignore::SyntaxWarning", "ignore::DeprecationWarning"]

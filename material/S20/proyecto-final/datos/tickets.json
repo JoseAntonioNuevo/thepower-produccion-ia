@@ -1,0 +1,32 @@
+{
+  "T-100": {
+    "estado": "abierto",
+    "organizacion": "Nubes Verdes S.L. (ficticia)",
+    "plan": "Estándar",
+    "severidad": "SEV-3",
+    "asunto": "La API devuelve 429 RATE_LIMIT_EXCEEDED durante la carga nocturna",
+    "descripcion": "Desde el lunes, la sincronización nocturna recibe respuestas 429 con error_code RATE_LIMIT_EXCEEDED al enviar unas 300 peticiones por minuto. El cliente pregunta si es una avería y cómo debe reintentar.",
+    "tecnologia": "HTTP 429 Too Many Requests y cabecera Retry-After",
+    "actualizacion": "Pendiente de respuesta de soporte con la política aplicable."
+  },
+  "T-200": {
+    "estado": "pendiente de información",
+    "organizacion": "Talleres Aurora S.A. (ficticia)",
+    "plan": "Empresa",
+    "severidad": "SEV-3",
+    "asunto": "Solicitud de crédito de servicio por disponibilidad del 99,20 % en octubre",
+    "descripcion": "El cliente indica que la disponibilidad mensual fue del 99,20 % y pide el crédito que corresponda. No adjunta los identificadores de incidencia.",
+    "tecnologia": "SLA y créditos de servicio",
+    "actualizacion": "Falta que el cliente adjunte los identificadores de incidencia."
+  },
+  "T-300": {
+    "estado": "resuelto",
+    "organizacion": "Logística Boreal S.L. (ficticia)",
+    "plan": "Estándar",
+    "severidad": "SEV-2",
+    "asunto": "403 TENANT_MISMATCH tras rotar el certificado de cliente",
+    "descripcion": "Tras la rotación semanal del certificado, las llamadas devolvían 403 TENANT_MISMATCH. La cabecera X-Aether-Tenant no coincidía con el atributo ou del certificado nuevo.",
+    "tecnologia": "mTLS y cabecera X-Aether-Tenant",
+    "actualizacion": "Resuelto: el cliente corrigió la cabecera de organización."
+  }
+}

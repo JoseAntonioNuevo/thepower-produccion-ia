@@ -1,0 +1,15 @@
+{
+  "fecha_utc": "2026-10-17T18:59:00.573689+00:00",
+  "archive": "lambda-s17.zip",
+  "sha256": "0195a544766e680610584298d12feb716473e8b7c9d932867e2ad6070f96f073",
+  "code_sha256_base64": "AZWlRHZuaAYQWEKY0S/rcWRz6LfJ2TKGfirWBw+W8HM=",
+  "version": "s17-0195a544766e",
+  "platform": "linux/amd64",
+  "runtime": "python3.12",
+  "uncompressed_bytes": 30393926,
+  "compressed_bytes": 19368078,
+  "files": 2373,
+  "build_runtime_demo": true,
+  "aws_deployed": false,
+  "real_bedrock": false
+}

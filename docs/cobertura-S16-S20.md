@@ -1,0 +1,14 @@
+# Cobertura y estado de las cinco clases
+
+La implementación actual comprende la base común, S16 y S17. Los requisitos de S18–S20 están inventariados para conservar el alcance del encargo; sus presentaciones, guiones y demos se construirán al trabajar cada sesión. El plan completo de referencia está en `plan-S16-S20-referencia.md`.
+
+| Clase | Temario que se debe explicar | Ejercicio o integración que se debe demostrar | Estado actual |
+|---|---|---|---|
+| S16 | Proveedores, AWS, comparación Azure/GCP, compute/storage/networking/seguridad, costes, Docker e IA gestionada | FastAPI, Docker no root, ECR/Fargate, arquitectura, secretos/roles, red acotada, salud y función, 730 h y limpieza | Código y materiales preparados; matriz específica; ejecución AWS pendiente |
+| S17 | Bedrock, Lambda, serverless, alternativas Azure/Google, coste, latencia y límites | HTTP API IAM, SigV4, perfil europeo, InvokeModel, permisos de llamante, JSON validado, entrada/tokens/reintentos/concurrencia/timeouts, cold start observado y 5 warm, estimación 1.000 peticiones y limpieza | Código y materiales preparados localmente; matriz 30 puntos, build/RIE/tests verificados; ejecución AWS pendiente |
+| S18 | CI/CD y entornos, GitHub Actions, logs/monitoring/APM/error tracking, secretos, migraciones compatibles, despliegues progresivos, backups y recuperación | PR con análisis/pytest/build y fallo bloqueado; acciones por SHA; main repite checks; imagen/digest; dispatch sin rebuild; OIDC con aud/sub real; environment limitado a main; logs y smoke; segunda versión, rollback y comprobación | Planificado; reutilizar API, imagen, readback e identidad de S16 |
+| S19 | Métricas de modelos y RAG, análisis de producción, tests de agentes/pipelines, evaluación y observabilidad | Python/pgvector reconstruible, 8+ docs, validación separada, 20 preguntas 14+6, precision@5/recall@5 por documentos, Ragas aislado con pins del ejercicio, 5 revisiones manuales, fallos/NaN/cobertura, A/B de una variable, Langfuse y coste separado, pytest offline/llm y control de regresión | Planificado; reutilizar corpus AetherCloud y contratos, sin heredar cifras del laboratorio determinista |
+| S20 | Planificación, prompts, grafo, módulos/herramientas, PostgreSQL, Langfuse, FastAPI, MCP, AWS, Deep Research + RAG e integración | Proyecto de referencia y recorrido completo; modalidad, rúbrica y fecha de entrega pendientes de concreción con la escuela | Planificado; propuesta de taller en el plan, sin atribuirla a Laura |
+
+Las dos promociones reciben un starter completo: S17 L/X no depende de haber visto nuestra S16, y S19 M/J ocurre antes de nuestra S18 L/X. Los ejemplos de una sesión no sustituyen los entregables obligatorios de otra. La ampliación multimodal/voz del proyecto final sigue siendo opcional en la propuesta, no un nuevo requisito de S20.
+

@@ -1,0 +1,21 @@
+{
+  "fijado": "2026-11-17",
+  "aviso": "SUPUESTOS de tamaño, no mediciones. Sirven para acotar el gasto antes de autorizarlo. Tras la primera ejecución real se sustituyen por los tokens medidos.",
+  "embeddings": {"modelo": "gemini-embedding-2", "tokens": 150},
+  "generacion": {
+    "modelo": "gemini-3.5-flash-lite",
+    "tokens_entrada": 1100,
+    "tokens_salida": 300,
+    "max_tokens": 1024,
+    "nota": "entrada = instrucciones + 4 fragmentos (hasta 900 caracteres cada uno en B) + pregunta; salida incluye razonamiento"
+  },
+  "evaluador": {
+    "modelo": "gemini-3.8-flash",
+    "llamadas_llm_por_caso": 5,
+    "peticiones_embeddings_por_caso": 2,
+    "tokens_entrada_por_caso": 4500,
+    "tokens_salida_por_caso": 1500,
+    "max_tokens": 4096,
+    "nota": "Faithfulness = 2 llamadas (afirmaciones + veredictos); AnswerRelevancy = 3 llamadas (strictness=3) + embeddings de la pregunta y de las 3 preguntas generadas. Contado en el código de ragas 0.4.3."
+  }
+}

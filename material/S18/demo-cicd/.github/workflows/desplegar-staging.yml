@@ -1,0 +1,233 @@
+# Entrega continua, parte 2: desplegar en staging una imagen YA publicada, identificada
+# por su digest. No se reconstruye nada: lo que se probó es lo que se despliega.
+# Un rollback es este mismo workflow con el digest de la versión anterior.
+name: Desplegar · staging
+run-name: "staging ← ${{ inputs.digest }} · ${{ inputs.motivo }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: "Digest publicado por «Publicar · main» (sha256:…)"
+        required: true
+        type: string
+      motivo:
+        description: "Queda anotado en el resumen de la ejecución"
+        required: true
+        type: choice
+        default: despliegue
+        options: [despliegue, rollback]
+
+permissions:
+  contents: read
+
+# Un solo despliegue a la vez en staging; el siguiente espera.
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  desplegar:
+    name: Desplegar por digest y comprobar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # «environment» hace dos cosas: aplica las reglas del entorno (solo la rama main puede
+    # desplegar) y cambia el «sub» del token OIDC a «…:environment:staging».
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Los datos que escribe una persona entran como variables de entorno, nunca
+      # interpolados dentro del script: así no pueden inyectar comandos.
+      DIGEST: ${{ inputs.digest }}
+      MOTIVO: ${{ inputs.motivo }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      REPOSITORIO: ${{ vars.ECR_REPOSITORY }}
+      CLUSTER: ${{ vars.ECS_CLUSTER }}
+      SERVICIO: ${{ vars.ECS_SERVICE }}
+      GRUPO_SEGURIDAD: ${{ vars.ECS_SECURITY_GROUP }}
+    steps:
+      - name: Comprobar la rama y el formato del digest
+        run: |
+          # Un workflow_dispatch puede lanzarse desde cualquier rama, con el YAML de esa
+          # rama. Esta comprobación es una ayuda; la barrera real es la regla del entorno
+          # «staging» y la confianza del rol de AWS.
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Solo se despliega desde main; esta ejecución viene de $GITHUB_REF."
+            exit 1
+          fi
+          if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::El digest debe tener la forma sha256: seguido de 64 caracteres hexadecimales."
+            exit 1
+          fi
+
+      - name: Descargar el código (solo para usar scripts/smoke.sh)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Obtener credenciales temporales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_DESPLEGAR }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: desplegar-${{ github.run_id }}
+          mask-aws-account-id: true
+
+      - name: Comprobar que el digest existe en ECR y viene de un commit publicado
+        id: imagen
+        run: |
+          ETIQUETAS="$(aws ecr describe-images --repository-name "$REPOSITORIO" \
+            --image-ids "imageDigest=$DIGEST" \
+            --query 'imageDetails[0].imageTags' --output json)"
+          # «Publicar · main» etiqueta cada imagen con el commit de 40 caracteres.
+          COMMIT="$(jq -r 'map(select(test("^[0-9a-f]{40}$"))) | first // empty' <<<"$ETIQUETAS")"
+          if [[ -z "$COMMIT" ]]; then
+            echo "::error::Ese digest no tiene etiqueta de commit: no lo publicó «Publicar · main»."
+            exit 1
+          fi
+          CUENTA="$(aws sts get-caller-identity --query Account --output text)"
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "uri=$CUENTA.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORIO@$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "El digest corresponde al commit $COMMIT"
+
+      - name: Anotar qué hay desplegado ahora
+        id: antes
+        run: |
+          DEFINICION="$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICIO" \
+            --query 'services[0].taskDefinition' --output text)"
+          IMAGEN="$(aws ecs describe-task-definition --task-definition "$DEFINICION" \
+            --query 'taskDefinition.containerDefinitions[0].image' --output text)"
+          echo "definicion=$DEFINICION" >> "$GITHUB_OUTPUT"
+          echo "digest=${IMAGEN##*@}" >> "$GITHUB_OUTPUT"
+          echo "Antes del cambio: $DEFINICION con ${IMAGEN##*@}"
+
+      - name: Registrar una definición de tarea con la imagen por digest
+        id: nueva
+        env:
+          IMAGEN: ${{ steps.imagen.outputs.uri }}
+          DEFINICION_ANTERIOR: ${{ steps.antes.outputs.definicion }}
+        run: |
+          aws ecs describe-task-definition --task-definition "$DEFINICION_ANTERIOR" \
+            --query 'taskDefinition' --output json > anterior.json
+          # Misma configuración; solo cambia la imagen. Se quitan los campos de solo
+          # lectura que AWS añade al describir una definición.
+          jq --arg imagen "$IMAGEN" '
+            .containerDefinitions[0].image = $imagen
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)
+          ' anterior.json > nueva.json
+          DEFINICION="$(aws ecs register-task-definition --cli-input-json file://nueva.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)"
+          echo "definicion=$DEFINICION" >> "$GITHUB_OUTPUT"
+          echo "Definición nueva: $DEFINICION"
+
+      - name: Actualizar el servicio y esperar
+        env:
+          DEFINICION: ${{ steps.nueva.outputs.definicion }}
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICIO" \
+            --task-definition "$DEFINICION" \
+            --query 'service.deployments[0].{despliegue:id,estado:rolloutState}' --output json
+          # ECS arranca la tarea nueva, espera a que esté sana y después para la anterior.
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICIO"
+
+      - name: Comprobar qué quedó desplegado de verdad
+        id: despues
+        env:
+          DEFINICION: ${{ steps.nueva.outputs.definicion }}
+        run: |
+          # shellcheck disable=SC2016  # las comillas invertidas son de la consulta, no de Bash
+          # Un servicio «estable» también lo está si ECS deshizo el cambio porque la tarea
+          # nueva no arrancaba (circuit breaker). Por eso leemos qué ejecuta.
+          PRINCIPAL="$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICIO" \
+            --query 'services[0].deployments[?status==`PRIMARY`] | [0].{definicion:taskDefinition,estado:rolloutState,motivo:rolloutStateReason}' \
+            --output json)"
+          echo "$PRINCIPAL"
+          if [[ "$(jq -r '.definicion' <<<"$PRINCIPAL")" != "$DEFINICION" \
+             || "$(jq -r '.estado' <<<"$PRINCIPAL")" != "COMPLETED" ]]; then
+            echo "::error::El servicio no ejecuta la definición nueva: el despliegue falló o ECS volvió a la anterior."
+            exit 1
+          fi
+          TAREAS="$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICIO" \
+            --desired-status RUNNING --query 'taskArns' --output text)"
+          # shellcheck disable=SC2086  # la lista de tareas se separa por espacios a propósito
+          aws ecs describe-tasks --cluster "$CLUSTER" --tasks $TAREAS --output json > tareas.json
+          jq --arg definicion "$DEFINICION" \
+            '[.tasks[] | select(.taskDefinitionArn == $definicion)] | first' tareas.json > tarea.json
+          EN_MARCHA="$(jq -r '.containers[0].imageDigest // empty' tarea.json)"
+          if [[ "$EN_MARCHA" != "$DIGEST" ]]; then
+            echo "::error::La tarea ejecuta ${EN_MARCHA:-nada} y se pidió $DIGEST."
+            exit 1
+          fi
+          INTERFAZ="$(jq -r '[.attachments[].details[] | select(.name == "networkInterfaceId") | .value] | first' tarea.json)"
+          IP="$(aws ec2 describe-network-interfaces --network-interface-ids "$INTERFAZ" \
+            --query 'NetworkInterfaces[0].Association.PublicIp' --output text)"
+          [[ "$IP" =~ ^[0-9]+(\.[0-9]+){3}$ ]] || { echo "::error::La tarea no tiene IP pública"; exit 1; }
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          echo "La tarea en marcha ejecuta el digest pedido."
+
+      # La API de staging solo admite entrada desde direcciones concretas. Para probarla
+      # se abre el puerto 8000 a la IP de este runner y se cierra al terminar.
+      - name: Abrir el puerto solo para este runner
+        id: regla
+        run: |
+          # shellcheck disable=SC2016  # las comillas invertidas son de la consulta, no de Bash
+          # Retira reglas de pruebas anteriores que hubieran quedado sin cerrar.
+          VIEJAS="$(aws ec2 describe-security-group-rules \
+            --filters "Name=group-id,Values=$GRUPO_SEGURIDAD" \
+            --query 'SecurityGroupRules[?Description==`smoke-github-actions`].SecurityGroupRuleId' \
+            --output text)"
+          if [[ -n "$VIEJAS" && "$VIEJAS" != "None" ]]; then
+            # shellcheck disable=SC2086
+            aws ec2 revoke-security-group-ingress --group-id "$GRUPO_SEGURIDAD" \
+              --security-group-rule-ids $VIEJAS --query 'Return' --output text
+          fi
+          MI_IP="$(curl -4fsS --connect-timeout 5 --max-time 10 https://checkip.amazonaws.com)"
+          [[ "$MI_IP" =~ ^[0-9]+(\.[0-9]+){3}$ ]] || { echo "::error::No se pudo leer la IP del runner"; exit 1; }
+          REGLA="$(aws ec2 authorize-security-group-ingress --group-id "$GRUPO_SEGURIDAD" \
+            --ip-permissions "IpProtocol=tcp,FromPort=8000,ToPort=8000,IpRanges=[{CidrIp=$MI_IP/32,Description=smoke-github-actions}]" \
+            --query 'SecurityGroupRules[0].SecurityGroupRuleId' --output text)"
+          echo "id=$REGLA" >> "$GITHUB_OUTPUT"
+
+      - name: Salud y petición funcional contra staging
+        env:
+          IP: ${{ steps.despues.outputs.ip }}
+          COMMIT: ${{ steps.imagen.outputs.commit }}
+        run: |
+          # Un job en verde no basta: la API tiene que responder y con la versión esperada.
+          bash scripts/smoke.sh "http://$IP:8000" "$COMMIT"
+
+      - name: Cerrar el puerto
+        if: always() && steps.regla.outputs.id != ''
+        env:
+          REGLA: ${{ steps.regla.outputs.id }}
+        run: |
+          aws ec2 revoke-security-group-ingress --group-id "$GRUPO_SEGURIDAD" \
+            --security-group-rule-ids "$REGLA" --query 'Return' --output text
+
+      - name: Resumen
+        if: always()
+        env:
+          COMMIT: ${{ steps.imagen.outputs.commit }}
+          DEFINICION_ANTERIOR: ${{ steps.antes.outputs.definicion }}
+          DIGEST_ANTERIOR: ${{ steps.antes.outputs.digest }}
+          DEFINICION_NUEVA: ${{ steps.nueva.outputs.definicion }}
+          RESULTADO: ${{ job.status }}
+        run: |
+          {
+            echo "### Staging · $MOTIVO · $RESULTADO"
+            echo ""
+            echo "| | Antes | Después |"
+            echo "|---|---|---|"
+            echo "| Digest | \`${DIGEST_ANTERIOR:-sin leer}\` | \`$DIGEST\` |"
+            echo "| Definición de tarea | \`${DEFINICION_ANTERIOR##*/}\` | \`${DEFINICION_NUEVA##*/}\` |"
+            echo "| Commit | | \`${COMMIT:-sin comprobar}\` |"
+            echo ""
+            echo "**Para volver atrás:** lanza este workflow con el digest de la columna «Antes» y motivo «rollback»."
+          } >> "$GITHUB_STEP_SUMMARY"

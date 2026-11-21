@@ -1,0 +1,17 @@
+Temario original de AI Engineer · bloque «Proyecto final» (S20)
+Fuente: correo de Laura Aguado (thePower) del 17/07/2026, Gmail id 19f6f7569cc093d9.
+Lectura en Gmail: 16/11/2026 (get_message, texto plano), dentro de la preparación de S19/S20.
+Copia local previa del mismo texto: 4-produccion-ia/docs/fuentes/temario-ai-engineer.txt (03/10/2026).
+Se conserva la redacción original, con sus erratas. Solo se copia el bloque de S20.
+
+PROYECTO FINAL: AGENTE CONVERSACIONAL
+Proyecto final: Agente conversacional Integrar todo lo aprendido en un
+único proyecto.
+Proyecto final: Agente conversacional Agente conversacional: introducción
+al proyecto y planificación, prompts y configuración del agente,
+construcción del grafo, módulos y herramientas, aplicación, integración con
+postgrsql, integración con lagfuse, exposición cia fastapi, integración con
+mcps y despliegue en aws / Deep-research + RAG: Extensión del agente con
+capacidades de investigación autónama combinadas con recuperación de
+información propia / Integración de todos los c omponentes
+Proyecto final Entrega de este proyecto final

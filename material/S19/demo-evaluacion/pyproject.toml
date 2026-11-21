@@ -1,0 +1,41 @@
+[project]
+name = "thepower-s19-evaluacion"
+version = "0.1.0"
+description = "S19 · RAG mínimo con evaluación y tests integrados (thePower · AI Engineer)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # PostgreSQL + pgvector. Los vectores viajan como texto '[0.1,0.2,...]'::vector.
+    "psycopg[binary]==3.3.9",
+    # Perfil real: generación y embeddings con la API de Gemini.
+    "google-genai==3.3.0",
+    # Observabilidad: trazas, puntuaciones, tokens y coste.
+    "langfuse==5.2.0",
+]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ruff==0.17.1"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# Por defecto NO se ejecuta nada que gaste (llm) ni que necesite Docker (db).
+addopts = "-ra -m 'not llm and not db'"
+markers = [
+    "llm: evaluación real con modelos de pago; exige claves y S19_EJECUTAR_REAL=1",
+    "db: integración con PostgreSQL + pgvector en Docker (sin coste)",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 125
+extend-exclude = ["evaluador/.venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# En los tests se prefiere un caso por línea aunque sea larga.
+"**/tests/*" = ["E501"]

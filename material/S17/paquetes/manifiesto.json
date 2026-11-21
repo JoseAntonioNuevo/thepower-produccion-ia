@@ -1,0 +1,18 @@
+[
+  {
+    "archivo": "S17-inicio.zip",
+    "archivos": 20,
+    "sha256": "35e90c5926c9e8ac8cdf46029ca95484f89fc8e45fa3c73a13b14f3d1d332df3"
+  },
+  {
+    "archivo": "S17-referencia.zip",
+    "archivos": 101,
+    "sha256": "77a1b70410dc93bc581ab3ef1e634b0e30b8742f09ddf33829062f4ec65c2a61"
+  },
+  {
+    "archivo": "lambda-s17.zip",
+    "sha256": "0195a544766e680610584298d12feb716473e8b7c9d932867e2ad6070f96f073",
+    "platform": "linux/amd64",
+    "aws_deployed": false
+  }
+]

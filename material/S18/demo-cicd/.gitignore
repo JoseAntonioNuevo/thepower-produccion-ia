@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+# Configuración local con claves: nunca se sube.
+.env
+.env.*
+!.env.example
+# Notas locales con datos de tu proyecto AWS, si las guardas.
+.demo-aws/
+*.sqlite3
+.DS_Store

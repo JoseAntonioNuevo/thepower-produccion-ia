@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-11",
+  "profile": "thepower-aws",
+  "region": "eu-north-1",
+  "project": {
+    "id": "123456789012",
+    "name": "For Each and Every",
+    "plan": "FREE",
+    "state": "ACTIVE",
+    "remainingCreditsUsd": 100,
+    "creditReadIsNotFinalBill": true
+  },
+  "created": {
+    "secret": {
+      "name": "s16/thepower/openrouter",
+      "arn": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv",
+      "valueNeverRecorded": true
+    },
+    "executionRole": {
+      "name": "s16-thepower-ecs-execution",
+      "arn": "arn:aws:iam::123456789012:role/s16-thepower-ecs-execution",
+      "inlinePolicyName": "s16-runtime-only"
+    },
+    "serviceLinkedRole": {
+      "name": "AWSServiceRoleForECS",
+      "serviceOwned": true,
+      "preserveOnCleanup": true
+    },
+    "logGroup": {
+      "name": "/s16/thepower/api",
+      "retentionDays": 3,
+      "storedBytesAtRead": 0
+    },
+    "securityGroup": {
+      "id": "sg-0b634fb83eb28d501",
+      "name": "s16-thepower-api",
+      "ingress": [],
+      "egress": "TCP 443 to 0.0.0.0/0"
+    },
+    "cluster": {
+      "name": "s16-thepower",
+      "arn": "arn:aws:ecs:eu-north-1:123456789012:cluster/s16-thepower",
+      "runningTasks": 0,
+      "services": 0
+    }
+  },
+  "reused": {
+    "vpc": "vpc-0125b801d92c9910b",
+    "subnets": [
+      "subnet-0866346d3f77d89b0",
+      "subnet-0619a5a72bc97ecab",
+      "subnet-01fc2f9a98693f522"
+    ],
+    "routeTable": "rtb-0a34b4f0232e12441",
+    "internetGateway": "igw-09c6626b0948610b1",
+    "networkAcl": "acl-009b4d01f0df600ee",
+    "dnsSupport": true,
+    "dnsHostnames": true,
+    "modified": false
+  },
+  "reservedForClass": {
+    "repository": "s16-clasificador",
+    "taskDefinition": "s16-thepower-api",
+    "service": "s16-thepower-api"
+  },
+  "notCreated": [
+    "ECR repository",
+    "ECS task definition",
+    "ECS service",
+    "Fargate task",
+    "public IPv4",
+    "NAT gateway",
+    "load balancer"
+  ],
+  "checks": {
+    "awsMcp": "loaded; registered profile thepower-aws; STS matches local login_session",
+    "regionalAvailability": "ECS/ECR/SecretsManager/Logs/EC2 support resources available",
+    "fargateOnDemandVcpuQuota": 12,
+    "iamSimulation": "execution role allow pull/log/secret; deny unrelated secret, push and delete; aws:RequestedRegion context eu-north-1 required",
+    "passRole": "allowed in IAM simulator for human role to ECS execution role",
+    "docker": "linux/amd64 build succeeded; /health and /clasificar demo HTTP 200; invalid input HTTP 422; temporary container stopped",
+    "remoteApp": "not deployed or tested",
+    "realInferenceThisSession": false,
+    "networkDataPlane": "not exercised by Fargate task",
+    "cleanup": "not executed"
+  },
+  "memory": {
+    "status": "pending-unmapped",
+    "accountNotGuessed": true
+  },
+  "sourceRepository": "https://github.com/JoseAntonioNuevo/thepower-aws",
+  "delivery": {
+    "commit": false,
+    "push": false
+  }
+}

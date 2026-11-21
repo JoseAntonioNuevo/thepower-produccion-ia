@@ -1,0 +1,39 @@
+{
+  "run_id": "validacion-A-DEGRADADO-sin-rechazo",
+  "creado": "2026-11-17T10:37:43+01:00",
+  "conjunto": "validacion",
+  "huella_conjunto": "38340dbddf01",
+  "n_casos": 8,
+  "indice_id": "idx-1ad935d31767",
+  "config": {
+    "perfil": "doble",
+    "embedding_modelo": "doble-hash-768",
+    "embedding_dim": 768,
+    "gen_modelo": "doble-extractivo",
+    "chunk_size": 320,
+    "chunk_overlap": 0,
+    "k_fragmentos": 12,
+    "k_documentos": 5,
+    "k_contexto": 4,
+    "umbral_evidencia": 0.2787,
+    "prompt_version": "v1",
+    "config_id": "A"
+  },
+  "modelos": {
+    "generacion": "doble-extractivo",
+    "embeddings": "doble-hash-768"
+  },
+  "versiones": {
+    "psycopg": "3.3.9",
+    "google-genai": "3.3.0",
+    "langfuse": "5.2.0"
+  },
+  "llamadas": {
+    "embeddings": 8,
+    "generacion": 6
+  },
+  "langfuse": false,
+  "aviso": "RESULTADO DEGRADADO A PROPÓSITO (sin-rechazo) para probar el control de regresión. No es una medición. PERFIL DOBLE: embeddings por hash de palabras y generador extractivo locales. Estas cifras comprueban el funcionamiento del sistema de evaluación; NO miden ningún modelo.",
+  "degradado": "sin-rechazo",
+  "origen": "validacion-A"
+}

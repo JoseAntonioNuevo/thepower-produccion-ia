@@ -1,0 +1,873 @@
+{
+  "date": "2026-11-11",
+  "policyValidation": {
+    "validation": {
+      "findings": []
+    },
+    "operatorSimulation": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "ecr:CreateRepository",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecr:GetAuthorizationToken",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecr:InitiateLayerUpload",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecr:UploadLayerPart",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecr:CompleteLayerUpload",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecr:PutImage",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecs:RegisterTaskDefinition",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecs:CreateService",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ecs:RunTask",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ec2:AuthorizeSecurityGroupIngress",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        },
+        {
+          "EvalActionName": "ec2:ModifySecurityGroupRules",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        }
+      ]
+    }
+  },
+  "iam": {
+    "login": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "ecr:GetAuthorizationToken",
+          "EvalResourceName": "*",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 1,
+                "Column": 41
+              },
+              "EndPosition": {
+                "Line": 1,
+                "Column": 137
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          }
+        }
+      ]
+    },
+    "pull": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "ecr:BatchCheckLayerAvailability",
+          "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 1,
+                "Column": 137
+              },
+              "EndPosition": {
+                "Line": 1,
+                "Column": 364
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+              "EvalResourceDecision": "allowed",
+              "MatchedStatements": [
+                {
+                  "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+                  "SourcePolicyType": "IAM Policy",
+                  "StartPosition": {
+                    "Line": 1,
+                    "Column": 137
+                  },
+                  "EndPosition": {
+                    "Line": 1,
+                    "Column": 364
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EvalActionName": "ecr:BatchGetImage",
+          "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 1,
+                "Column": 137
+              },
+              "EndPosition": {
+                "Line": 1,
+                "Column": 364
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+              "EvalResourceDecision": "allowed",
+              "MatchedStatements": [
+                {
+                  "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+                  "SourcePolicyType": "IAM Policy",
+                  "StartPosition": {
+                    "Line": 1,
+                    "Column": 137
+                  },
+                  "EndPosition": {
+                    "Line": 1,
+                    "Column": 364
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EvalActionName": "ecr:GetDownloadUrlForLayer",
+          "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 1,
+                "Column": 137
+              },
+              "EndPosition": {
+                "Line": 1,
+                "Column": 364
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+              "EvalResourceDecision": "allowed",
+              "MatchedStatements": [
+                {
+                  "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+                  "SourcePolicyType": "IAM Policy",
+                  "StartPosition": {
+                    "Line": 1,
+                    "Column": 137
+                  },
+                  "EndPosition": {
+                    "Line": 1,
+                    "Column": 364
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "negative_secret": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "secretsmanager:GetSecretValue",
+          "EvalResourceName": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/unrelated/test-abcdef",
+          "EvalDecision": "implicitDeny",
+          "MatchedStatements": [],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/unrelated/test-abcdef",
+              "EvalResourceDecision": "implicitDeny"
+            }
+          ]
+        }
+      ]
+    },
+    "negative_push": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "ecr:PutImage",
+          "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+          "EvalDecision": "implicitDeny",
+          "MatchedStatements": [],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:ecr:eu-north-1:123456789012:repository/s16-clasificador",
+              "EvalResourceDecision": "implicitDeny"
+            }
+          ]
+        }
+      ]
+    },
+    "negative_delete": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "secretsmanager:DeleteSecret",
+          "EvalResourceName": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv",
+          "EvalDecision": "implicitDeny",
+          "MatchedStatements": [],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv",
+              "EvalResourceDecision": "implicitDeny"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "secretSimulationWithRegion": {
+    "EvaluationResults": [
+      {
+        "EvalActionName": "secretsmanager:GetSecretValue",
+        "EvalResourceName": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv",
+        "EvalDecision": "allowed",
+        "MatchedStatements": [
+          {
+            "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+            "SourcePolicyType": "IAM Policy",
+            "StartPosition": {
+              "Line": 1,
+              "Column": 568
+            },
+            "EndPosition": {
+              "Line": 1,
+              "Column": 769
+            }
+          }
+        ],
+        "MissingContextValues": [],
+        "OrganizationsDecisionDetail": {
+          "AllowedByOrganizations": true
+        },
+        "EvalDecisionDetails": {},
+        "ResourceSpecificResults": [
+          {
+            "EvalResourceName": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv",
+            "EvalResourceDecision": "allowed",
+            "MatchedStatements": [
+              {
+                "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+                "SourcePolicyType": "IAM Policy",
+                "StartPosition": {
+                  "Line": 1,
+                  "Column": 568
+                },
+                "EndPosition": {
+                  "Line": 1,
+                  "Column": 769
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logsAndPassRoleSimulation": {
+    "logs": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "logs:CreateLogStream",
+          "EvalResourceName": "arn:aws:logs:eu-north-1:123456789012:log-group:/s16/thepower/api:log-stream:api/api/verification",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 1,
+                "Column": 364
+              },
+              "EndPosition": {
+                "Line": 1,
+                "Column": 568
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:logs:eu-north-1:123456789012:log-group:/s16/thepower/api:log-stream:api/api/verification",
+              "EvalResourceDecision": "allowed",
+              "MatchedStatements": [
+                {
+                  "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+                  "SourcePolicyType": "IAM Policy",
+                  "StartPosition": {
+                    "Line": 1,
+                    "Column": 364
+                  },
+                  "EndPosition": {
+                    "Line": 1,
+                    "Column": 568
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EvalActionName": "logs:PutLogEvents",
+          "EvalResourceName": "arn:aws:logs:eu-north-1:123456789012:log-group:/s16/thepower/api:log-stream:api/api/verification",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 1,
+                "Column": 364
+              },
+              "EndPosition": {
+                "Line": 1,
+                "Column": 568
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:logs:eu-north-1:123456789012:log-group:/s16/thepower/api:log-stream:api/api/verification",
+              "EvalResourceDecision": "allowed",
+              "MatchedStatements": [
+                {
+                  "SourcePolicyId": "role_s16-thepower-ecs-execution_s16-runtime-only",
+                  "SourcePolicyType": "IAM Policy",
+                  "StartPosition": {
+                    "Line": 1,
+                    "Column": 364
+                  },
+                  "EndPosition": {
+                    "Line": 1,
+                    "Column": 568
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "passRole": {
+      "EvaluationResults": [
+        {
+          "EvalActionName": "iam:PassRole",
+          "EvalResourceName": "arn:aws:iam::123456789012:role/s16-thepower-ecs-execution",
+          "EvalDecision": "allowed",
+          "MatchedStatements": [
+            {
+              "SourcePolicyId": "AdministratorAccess",
+              "SourcePolicyType": "IAM Policy",
+              "StartPosition": {
+                "Line": 3,
+                "Column": 17
+              },
+              "EndPosition": {
+                "Line": 8,
+                "Column": 6
+              }
+            }
+          ],
+          "MissingContextValues": [],
+          "OrganizationsDecisionDetail": {
+            "AllowedByOrganizations": true
+          },
+          "EvalDecisionDetails": {},
+          "ResourceSpecificResults": [
+            {
+              "EvalResourceName": "arn:aws:iam::123456789012:role/s16-thepower-ecs-execution",
+              "EvalResourceDecision": "allowed",
+              "MatchedStatements": [
+                {
+                  "SourcePolicyId": "AdministratorAccess",
+                  "SourcePolicyType": "IAM Policy",
+                  "StartPosition": {
+                    "Line": 3,
+                    "Column": 17
+                  },
+                  "EndPosition": {
+                    "Line": 8,
+                    "Column": 6
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "finalSnapshot": {
+    "clusters": {
+      "clusters": [
+        {
+          "clusterArn": "arn:aws:ecs:eu-north-1:123456789012:cluster/s16-thepower",
+          "clusterName": "s16-thepower",
+          "status": "ACTIVE",
+          "registeredContainerInstancesCount": 0,
+          "runningTasksCount": 0,
+          "pendingTasksCount": 0,
+          "activeServicesCount": 0,
+          "statistics": [],
+          "tags": [
+            {
+              "key": "Project",
+              "value": "thepower-s16"
+            },
+            {
+              "key": "Purpose",
+              "value": "classroom-demo"
+            },
+            {
+              "key": "ManagedBy",
+              "value": "codex-preparation"
+            },
+            {
+              "key": "CreatedOn",
+              "value": "2026-11-11"
+            }
+          ],
+          "settings": [
+            {
+              "name": "containerInsights",
+              "value": "disabled"
+            }
+          ],
+          "capacityProviders": [
+            "FARGATE"
+          ],
+          "defaultCapacityProviderStrategy": [
+            {
+              "capacityProvider": "FARGATE",
+              "weight": 1,
+              "base": 0
+            }
+          ]
+        }
+      ],
+      "failures": []
+    },
+    "repositories": {
+      "repositories": []
+    },
+    "task_definitions": {
+      "taskDefinitionArns": []
+    },
+    "security_group": {
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-0b634fb83eb28d501",
+          "IpPermissionsEgress": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 443,
+              "ToPort": 443,
+              "UserIdGroupPairs": [],
+              "IpRanges": [
+                {
+                  "Description": "HTTPS ECR, Secrets Manager, CloudWatch y OpenRouter",
+                  "CidrIp": "0.0.0.0/0"
+                }
+              ],
+              "Ipv6Ranges": [],
+              "PrefixListIds": []
+            }
+          ],
+          "Tags": [
+            {
+              "Key": "CreatedOn",
+              "Value": "2026-11-11"
+            },
+            {
+              "Key": "Project",
+              "Value": "thepower-s16"
+            },
+            {
+              "Key": "ManagedBy",
+              "Value": "codex-preparation"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "classroom-demo"
+            }
+          ],
+          "VpcId": "vpc-0125b801d92c9910b",
+          "SecurityGroupArn": "arn:aws:ec2:eu-north-1:123456789012:security-group/sg-0b634fb83eb28d501",
+          "OwnerId": "123456789012",
+          "GroupName": "s16-thepower-api",
+          "Description": "Demo S16 temporal: entrada 8000 solo IPv4 /32 antes de clase; salida HTTPS",
+          "IpPermissions": []
+        }
+      ]
+    },
+    "logs": {
+      "logGroups": [
+        {
+          "logGroupName": "/s16/thepower/api",
+          "creationTime": 1794390285335,
+          "retentionInDays": 3,
+          "metricFilterCount": 0,
+          "arn": "arn:aws:logs:eu-north-1:123456789012:log-group:/s16/thepower/api:*",
+          "storedBytes": 0,
+          "logGroupClass": "STANDARD",
+          "logGroupArn": "arn:aws:logs:eu-north-1:123456789012:log-group:/s16/thepower/api",
+          "deletionProtectionEnabled": false,
+          "bearerTokenAuthenticationEnabled": false
+        }
+      ]
+    },
+    "secret_metadata": {
+      "ARN": "arn:aws:secretsmanager:eu-north-1:123456789012:secret:s16/thepower/openrouter-bDhmgv",
+      "Name": "s16/thepower/openrouter",
+      "Description": "Clave OpenRouter para clase temporal S16 thePower; texto plano inyectado por ECS.",
+      "LastChangedDate": "2026-11-11T09:44:42.349000+00:00",
+      "LastAccessedDate": "2026-11-11T00:00:00+00:00",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "thepower-s16"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "classroom-demo"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "codex-preparation"
+        },
+        {
+          "Key": "CreatedOn",
+          "Value": "2026-11-11"
+        }
+      ],
+      "VersionIdsToStages": {
+        "6d661dd9-e693-4aed-a616-573c37b700c2": [
+          "AWSCURRENT"
+        ]
+      },
+      "CreatedDate": "2026-11-11T09:44:42.152000+00:00"
+    },
+    "global_logs": {
+      "logGroups": []
+    }
+  },
+  "local": {
+    "pytest": {
+      "passed": 45
+    },
+    "cfnLint": "passed S16/S17",
+    "offlinePreflight": "passed",
+    "demoRuff": "passed",
+    "globalRuff": "failed in preexisting presentation generators; 4733 findings; unrelated files unchanged",
+    "globalFormat": "19 preexisting files need formatting",
+    "shellSyntax": "passed bash/zsh",
+    "ipUpdaterOffline": [
+      "create:passed",
+      "replace:passed",
+      "reject broad ingress:passed",
+      "reject wrong project:passed"
+    ],
+    "docker": {
+      "build": "linux/amd64 passed",
+      "health": "200 demo",
+      "classification": "200 demo",
+      "invalidInput": 422,
+      "container": "stopped"
+    },
+    "taskAndServiceSdkSchemas": "valid offline",
+    "secretEquality": "verified locally, no value recorded",
+    "secretScan": "key absent from prepared artifacts"
+  },
+  "notExercised": [
+    "ECR create/login/push",
+    "task registration",
+    "Fargate runtime",
+    "public HTTP",
+    "inference from AWS",
+    "real IP rule update",
+    "cleanup"
+  ]
+}

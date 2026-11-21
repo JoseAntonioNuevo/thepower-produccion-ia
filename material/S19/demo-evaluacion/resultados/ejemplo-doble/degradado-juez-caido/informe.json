@@ -1,0 +1,332 @@
+{
+  "schema_version": "s19.informe.v1",
+  "run_id": "validacion-A-DEGRADADO-juez-caido",
+  "creado": "2026-11-17T10:37:43+01:00",
+  "conjunto": "validacion",
+  "huella_conjunto": "38340dbddf01",
+  "perfil": "doble",
+  "aviso": "RESULTADO DEGRADADO A PROPÓSITO (juez-caido) para probar el control de regresión. No es una medición. PERFIL DOBLE: embeddings por hash de palabras y generador extractivo locales. Estas cifras comprueban el funcionamiento del sistema de evaluación; NO miden ningún modelo.",
+  "config": {
+    "perfil": "doble",
+    "embedding_modelo": "doble-hash-768",
+    "embedding_dim": 768,
+    "gen_modelo": "doble-extractivo",
+    "chunk_size": 320,
+    "chunk_overlap": 0,
+    "k_fragmentos": 12,
+    "k_documentos": 5,
+    "k_contexto": 4,
+    "umbral_evidencia": 0.2787,
+    "prompt_version": "v1",
+    "config_id": "A"
+  },
+  "modelos": {
+    "generacion": "doble-extractivo",
+    "embeddings": "doble-hash-768"
+  },
+  "versiones": {
+    "psycopg": "3.3.9",
+    "google-genai": "3.3.0",
+    "langfuse": "5.2.0"
+  },
+  "indice_id": "idx-1ad935d31767",
+  "n_casos": 8,
+  "n_respondidas": 6,
+  "n_rechazos": 2,
+  "errores_sistema": [],
+  "n_errores_sistema": 0,
+  "recuperacion": {
+    "unidad": "documentos distintos; dos fragmentos del mismo documento = un acierto",
+    "n_preguntas": 5,
+    "de_respondibles": 5,
+    "precision_at_5": 0.24,
+    "precision_techo": 0.24,
+    "recall_at_5": 1.0,
+    "documentos_recuperados_media": 5.0,
+    "denominadores": "precision@5: siempre 5 · recall@5: documentos de referencia de cada pregunta"
+  },
+  "rechazo": {
+    "rechazos_correctos": 2,
+    "de_sin_respuesta": 3,
+    "tasa_rechazos_correctos": 0.6667,
+    "respuestas_indebidas": 1,
+    "abstenciones_incorrectas": 0,
+    "de_respondibles": 5,
+    "tasa_abstenciones_incorrectas": 0.0
+  },
+  "correccion": {
+    "criterio": "datos clave presentes + cita de un documento de referencia (datos/criterios.md)",
+    "aciertos": 3,
+    "de_respondibles": 5,
+    "tasa_aciertos": 0.6,
+    "aviso": "comprobación automática de cadenas; la revisión manual decide los casos dudosos"
+  },
+  "generacion": {
+    "no_evaluables": [
+      {
+        "caso_id": "V01",
+        "metrica": "faithfulness",
+        "motivo": "error_evaluador:TimeoutError"
+      },
+      {
+        "caso_id": "V03",
+        "metrica": "faithfulness",
+        "motivo": "error_evaluador:TimeoutError"
+      },
+      {
+        "caso_id": "V05",
+        "metrica": "faithfulness",
+        "motivo": "error_evaluador:TimeoutError"
+      },
+      {
+        "caso_id": "V01",
+        "metrica": "answer_relevancy",
+        "motivo": "error_evaluador:TimeoutError"
+      },
+      {
+        "caso_id": "V03",
+        "metrica": "answer_relevancy",
+        "motivo": "error_evaluador:TimeoutError"
+      },
+      {
+        "caso_id": "V05",
+        "metrica": "answer_relevancy",
+        "motivo": "error_evaluador:TimeoutError"
+      }
+    ],
+    "no_aplica_por_rechazo": 2,
+    "faithfulness": {
+      "media": 1.0,
+      "n_evaluables": 3,
+      "n_esperados": 6,
+      "cobertura": 0.5
+    },
+    "answer_relevancy": {
+      "media": 0.4226,
+      "n_evaluables": 3,
+      "n_esperados": 6,
+      "cobertura": 0.5
+    },
+    "evaluador": {
+      "modo": "doble",
+      "ruta": null,
+      "llm": "doble-lexico",
+      "embeddings": "doble-hash-256",
+      "ragas": "0.4.3",
+      "langchain_community": "0.3.31",
+      "python": "3.12.16",
+      "aviso": "JUEZ DOBLE: métricas de Ragas ejecutadas con un juez y unos embeddings locales deterministas. Comprueban el recorrido de la evaluación; NO miden ninguna respuesta."
+    },
+    "aviso": "fidelidad al contexto no demuestra que la respuesta sea correcta"
+  },
+  "operacion": {
+    "latencia_ms_mediana": 9.8,
+    "latencia_ms_maxima": 14.1,
+    "sistema": {
+      "llamadas": {
+        "embeddings": 8,
+        "generacion": 6
+      },
+      "tokens_entrada": null,
+      "tokens_salida": null,
+      "coste_usd_estimado": null
+    },
+    "evaluador": {
+      "llamadas_llm": 30,
+      "llamadas_embeddings": 24,
+      "tokens_entrada": null,
+      "tokens_salida": null,
+      "coste_usd_estimado": null,
+      "segundos": 0.0
+    }
+  },
+  "casos": [
+    {
+      "caso_id": "V01",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "02-autenticacion-mtls-tokens",
+        "03-limites-y-cuotas-api",
+        "09-observabilidad-opentelemetry",
+        "01-arquitectura-aethercloud",
+        "07-facturacion-y-planes"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V02",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "03-limites-y-cuotas-api",
+        "08-residencia-datos-y-rgpd",
+        "06-respuesta-a-incidentes",
+        "01-arquitectura-aethercloud",
+        "02-autenticacion-mtls-tokens"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V03",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "01-arquitectura-aethercloud",
+        "09-observabilidad-opentelemetry",
+        "07-facturacion-y-planes",
+        "04-almacenamiento-y-cifrado-kms"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": false,
+      "datos_clave_ausentes": [
+        "25 %"
+      ],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V04",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "06-respuesta-a-incidentes",
+        "07-facturacion-y-planes",
+        "08-residencia-datos-y-rgpd",
+        "10-despliegues-canary-y-rollback",
+        "01-arquitectura-aethercloud"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V05",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "07-facturacion-y-planes",
+        "04-almacenamiento-y-cifrado-kms",
+        "03-limites-y-cuotas-api",
+        "08-residencia-datos-y-rgpd",
+        "09-observabilidad-opentelemetry"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.4,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.4,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": false,
+      "datos_clave_ausentes": [
+        "AES-256-GCM"
+      ],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V06",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "01-arquitectura-aethercloud",
+        "06-respuesta-a-incidentes",
+        "08-residencia-datos-y-rgpd",
+        "09-observabilidad-opentelemetry",
+        "05-sla-y-creditos-servicio"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": false,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": true,
+      "acierto": false,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "V07",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "02-autenticacion-mtls-tokens",
+        "01-arquitectura-aethercloud",
+        "07-facturacion-y-planes",
+        "03-limites-y-cuotas-api"
+      ],
+      "n_documentos_recuperados": 4,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "V08",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "07-facturacion-y-planes",
+        "03-limites-y-cuotas-api",
+        "05-sla-y-creditos-servicio",
+        "02-autenticacion-mtls-tokens",
+        "01-arquitectura-aethercloud"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    }
+  ]
+}

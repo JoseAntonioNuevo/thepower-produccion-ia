@@ -1,0 +1,116 @@
+{
+  "variable": "chunk_size",
+  "valor_A": 320,
+  "valor_B": 900,
+  "run_A": "test-A",
+  "run_B": "test-B",
+  "conjunto": "test",
+  "n_casos": 20,
+  "perfil": "doble",
+  "aviso": "PERFIL DOBLE: embeddings por hash de palabras y generador extractivo locales. Estas cifras comprueban el funcionamiento del sistema de evaluación; NO miden ningún modelo.",
+  "filas": [
+    {
+      "metrica": "precision@5",
+      "A": 0.2429,
+      "B": 0.2429,
+      "delta": 0.0
+    },
+    {
+      "metrica": "recall@5",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "rechazos correctos (tasa)",
+      "A": 0.3333,
+      "B": 0.6667,
+      "delta": 0.3334
+    },
+    {
+      "metrica": "abstenciones incorrectas (tasa)",
+      "A": 0.2857,
+      "B": 0.5714,
+      "delta": 0.2857
+    },
+    {
+      "metrica": "aciertos por criterio (tasa)",
+      "A": 0.4286,
+      "B": 0.2143,
+      "delta": -0.2143
+    },
+    {
+      "metrica": "faithfulness (media)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "faithfulness (cobertura)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "answer_relevancy (media)",
+      "A": 0.4423,
+      "B": 0.525,
+      "delta": 0.0827
+    },
+    {
+      "metrica": "answer_relevancy (cobertura)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "latencia mediana (ms)",
+      "A": 9.4,
+      "B": 9.8,
+      "delta": 0.4
+    },
+    {
+      "metrica": "coste del sistema (USD, estimado)",
+      "A": null,
+      "B": null,
+      "delta": null
+    },
+    {
+      "metrica": "coste del evaluador (USD, estimado)",
+      "A": null,
+      "B": null,
+      "delta": null
+    }
+  ],
+  "casos_que_cambian": [
+    {
+      "caso_id": "T01",
+      "A": true,
+      "B": false
+    },
+    {
+      "caso_id": "T09",
+      "A": true,
+      "B": false
+    },
+    {
+      "caso_id": "T13",
+      "A": true,
+      "B": false
+    },
+    {
+      "caso_id": "T15",
+      "A": false,
+      "B": true
+    },
+    {
+      "caso_id": "T19",
+      "A": false,
+      "B": true
+    }
+  ],
+  "no_evaluables": {
+    "A": [],
+    "B": []
+  }
+}

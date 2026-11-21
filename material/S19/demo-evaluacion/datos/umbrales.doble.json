@@ -1,0 +1,64 @@
+{
+  "schema_version": "s19.umbrales.v1",
+  "perfil": "doble",
+  "margen": 0.1,
+  "fijado": "2026-11-17",
+  "origen": {
+    "run_id": "validacion-A",
+    "conjunto": "validacion",
+    "huella_conjunto": "38340dbddf01",
+    "n_casos": 8,
+    "modelos": {
+      "generacion": "doble-extractivo",
+      "embeddings": "doble-hash-768"
+    }
+  },
+  "aviso": "PERFIL DOBLE: embeddings por hash de palabras y generador extractivo locales. Estas cifras comprueban el funcionamiento del sistema de evaluación; NO miden ningún modelo.",
+  "reglas": [
+    {
+      "metrica": "recuperacion.recall_at_5",
+      "minimo": 0.9,
+      "validacion": 1.0
+    },
+    {
+      "metrica": "recuperacion.precision_at_5",
+      "minimo": 0.13,
+      "validacion": 0.24
+    },
+    {
+      "metrica": "rechazo.tasa_rechazos_correctos",
+      "minimo": 0.56,
+      "validacion": 0.6667
+    },
+    {
+      "metrica": "rechazo.tasa_abstenciones_incorrectas",
+      "maximo": 0.1,
+      "validacion": 0.0
+    },
+    {
+      "metrica": "correccion.tasa_aciertos",
+      "minimo": 0.5,
+      "validacion": 0.6
+    },
+    {
+      "metrica": "generacion.faithfulness.media",
+      "minimo": 0.9,
+      "validacion": 1.0
+    },
+    {
+      "metrica": "generacion.faithfulness.cobertura",
+      "minimo": 0.9,
+      "validacion": 1.0
+    },
+    {
+      "metrica": "generacion.answer_relevancy.media",
+      "minimo": 0.31,
+      "validacion": 0.4136
+    },
+    {
+      "metrica": "generacion.answer_relevancy.cobertura",
+      "minimo": 0.9,
+      "validacion": 1.0
+    }
+  ]
+}

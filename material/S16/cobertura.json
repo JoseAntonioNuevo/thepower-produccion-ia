@@ -1,0 +1,293 @@
+[
+  {
+    "id": "T01",
+    "requisito": "Introducción a proveedores cloud",
+    "diapositivas": [
+      3,
+      4
+    ],
+    "guion": "Cloud y mapa de servicios",
+    "evidencia": "Explicación",
+    "obligatorio": true
+  },
+  {
+    "id": "T02",
+    "requisito": "AWS básico: cuenta, región, zonas y recursos",
+    "diapositivas": [
+      3,
+      9
+    ],
+    "guion": "Cloud y mapa de servicios",
+    "evidencia": "Explicación",
+    "obligatorio": true
+  },
+  {
+    "id": "T03",
+    "requisito": "Comparación AWS, Azure y Google Cloud",
+    "diapositivas": [
+      4
+    ],
+    "guion": "Cloud y mapa de servicios",
+    "evidencia": "Explicación",
+    "obligatorio": true
+  },
+  {
+    "id": "T04",
+    "requisito": "Compute: VM, contenedor y función",
+    "diapositivas": [
+      5,
+      9
+    ],
+    "guion": "Cloud y mapa de servicios",
+    "evidencia": "Explicación",
+    "obligatorio": true
+  },
+  {
+    "id": "T05",
+    "requisito": "Storage: objetos, disco, BD, imágenes y logs",
+    "diapositivas": [
+      5
+    ],
+    "guion": "Cloud y mapa de servicios",
+    "evidencia": "Explicación",
+    "obligatorio": true
+  },
+  {
+    "id": "T06",
+    "requisito": "Networking: VPC, subred, rutas, IP, DNS y SG",
+    "diapositivas": [
+      10
+    ],
+    "guion": "Publicación y Fargate",
+    "evidencia": "Plantilla validada; ensayo AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "T07",
+    "requisito": "Seguridad: identidad, permisos, red y responsabilidad",
+    "diapositivas": [
+      3,
+      10,
+      11
+    ],
+    "guion": "Cloud y mapa de servicios; Publicación y Fargate",
+    "evidencia": "Explicación y plantillas",
+    "obligatorio": true
+  },
+  {
+    "id": "T08",
+    "requisito": "Optimización de costes",
+    "diapositivas": [
+      14,
+      15,
+      16
+    ],
+    "guion": "Costes y optimización",
+    "evidencia": "Calculadora ejecutada; consumos supuestos",
+    "obligatorio": true
+  },
+  {
+    "id": "T09",
+    "requisito": "Docker: imagen, contenedor, puertos, capas y configuración",
+    "diapositivas": [
+      6,
+      8,
+      18
+    ],
+    "guion": "API y Docker local",
+    "evidencia": "Contenedor amd64 y HTTP verificados",
+    "obligatorio": true
+  },
+  {
+    "id": "T10",
+    "requisito": "Primer vistazo a IA gestionada en cada nube",
+    "diapositivas": [
+      4,
+      20
+    ],
+    "guion": "Cloud y mapa de servicios",
+    "evidencia": "Explicación con servicios oficiales",
+    "obligatorio": true
+  },
+  {
+    "id": "E01",
+    "requisito": "FastAPI con salud y endpoint que invoque IA",
+    "diapositivas": [
+      7,
+      12
+    ],
+    "guion": "API y Docker local; Evidencia funcional",
+    "evidencia": "HTTP demo y adaptador con transporte simulado; inferencia real pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E02",
+    "requisito": "Modelo por variable y dependencias fijadas",
+    "diapositivas": [
+      7,
+      8
+    ],
+    "guion": "API y Docker local",
+    "evidencia": "Lock instalado y configuración comprobada",
+    "obligatorio": true
+  },
+  {
+    "id": "E03",
+    "requisito": "Dockerfile, dockerignore y usuario no root",
+    "diapositivas": [
+      6,
+      8,
+      18
+    ],
+    "guion": "API y Docker local",
+    "evidencia": "Build e id 10001 verificados",
+    "obligatorio": true
+  },
+  {
+    "id": "E04",
+    "requisito": "Probar ambos endpoints localmente",
+    "diapositivas": [
+      7,
+      12
+    ],
+    "guion": "API y Docker local",
+    "evidencia": "Ensayo HTTP demo correcto; proveedor real pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E05",
+    "requisito": "Publicar imagen identificable en ECR",
+    "diapositivas": [
+      9,
+      12
+    ],
+    "guion": "Publicación y Fargate",
+    "evidencia": "CLI y guardas probados; push AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E06",
+    "requisito": "Desplegar ECS/Fargate",
+    "diapositivas": [
+      9,
+      12
+    ],
+    "guion": "Publicación y Fargate",
+    "evidencia": "CloudFormation validada estáticamente; deploy pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E07",
+    "requisito": "Compatibilidad Apple Silicon, amd64 o ARM64",
+    "diapositivas": [
+      8
+    ],
+    "guion": "API y Docker local",
+    "evidencia": "Build linux/amd64 y tarea X86_64 alineados",
+    "obligatorio": true
+  },
+  {
+    "id": "E08",
+    "requisito": "Secrets Manager o Parameter Store referenciados en tarea",
+    "diapositivas": [
+      11
+    ],
+    "guion": "Publicación y Fargate",
+    "evidencia": "Secrets Manager implementado; SSM explicado; remoto pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E09",
+    "requisito": "Execution role, task role y KMS propia si se usa",
+    "diapositivas": [
+      11
+    ],
+    "guion": "Publicación y Fargate",
+    "evidencia": "Políticas y condición KMS validadas estáticamente",
+    "obligatorio": true
+  },
+  {
+    "id": "E10",
+    "requisito": "IP temporal, puerto/IP restringidos, salida, datos ficticios y sin claves por HTTP",
+    "diapositivas": [
+      10
+    ],
+    "guion": "Publicación y Fargate",
+    "evidencia": "/32 exigido, salida TLS; lectura AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E11",
+    "requisito": "730 horas: CPU, memoria, ECR, logs, IPv4 y tráfico",
+    "diapositivas": [
+      14,
+      15
+    ],
+    "guion": "Costes y optimización",
+    "evidencia": "Tarifas públicas leídas; cálculo reproducido",
+    "obligatorio": true
+  },
+  {
+    "id": "E12",
+    "requisito": "Inferencia separada, supuestos/tarifas y extras solo si se usan",
+    "diapositivas": [
+      14,
+      15
+    ],
+    "guion": "Costes y optimización",
+    "evidencia": "Modelo de costes documentado; consumo real pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E13",
+    "requisito": "Retirar tareas, imágenes, secretos, logs y red",
+    "diapositivas": [
+      16
+    ],
+    "guion": "Limpieza e inventario",
+    "evidencia": "Procedimiento preparado; retirada AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E14",
+    "requisito": "Revisar remanentes y conservar recursos compartidos",
+    "diapositivas": [
+      16
+    ],
+    "guion": "Limpieza e inventario",
+    "evidencia": "Guardas de propiedad probadas; inventario AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E15",
+    "requisito": "Comparar mes completo con demo y apagado",
+    "diapositivas": [
+      15,
+      16
+    ],
+    "guion": "Costes y optimización",
+    "evidencia": "13,78 USD y 0,46 USD con supuestos explícitos",
+    "obligatorio": true
+  },
+  {
+    "id": "E16",
+    "requisito": "Entrega: código, infraestructura/instrucciones, evidencias, coste y limpieza",
+    "diapositivas": [
+      17
+    ],
+    "guion": "Ejercicio y preguntas",
+    "evidencia": "Paquete local preparado; evidencia AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "O01",
+    "requisito": "Opcional: HTTPS con balanceador y tareas privadas; coste/limpieza incluidos",
+    "diapositivas": [
+      10,
+      17
+    ],
+    "guion": "Ejercicio y preguntas",
+    "evidencia": "Explicado como ampliación; no implementado",
+    "obligatorio": false
+  }
+]

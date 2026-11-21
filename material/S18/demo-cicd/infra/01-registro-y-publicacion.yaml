@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S18 (1 de 2): registro privado de imagenes con etiquetas inmutables, proveedor OIDC de
+  GitHub y rol que solo puede publicar imagenes desde la rama main. No despliega nada.
+
+# Orden de uso:
+#   1. Se crea este stack (registro + identidad para publicar).
+#   2. Un push a main ejecuta «Publicar · main» y deja la primera imagen en el registro.
+#   3. Con el digest de esa imagen se crea el stack 02-staging.yaml.
+
+Parameters:
+  Lab:
+    Type: String
+    AllowedPattern: "s18-[a-z0-9-]{3,30}"
+    Description: Nombre propio del laboratorio, por ejemplo s18-tu-nombre. Da nombre al registro.
+  SubPublicar:
+    Type: String
+    AllowedPattern: "repo:[^*?]+:ref:refs/heads/main"
+    Description: >-
+      Valor exacto del claim «sub» de un job lanzado desde main. Formato clasico:
+      repo:ORG/REPO:ref:refs/heads/main. Los repositorios creados desde el 15/07/2026 emiten
+      el formato con identificadores: repo:ORG@111/REPO@222:ref:refs/heads/main.
+      No admite comodines.
+  CrearProveedorOidc:
+    Type: String
+    AllowedValues: ["si", "no"]
+    Default: "si"
+    Description: >-
+      Un proyecto de AWS solo admite un proveedor OIDC por emisor. Elige «no» si
+      token.actions.githubusercontent.com ya existe en tu proyecto.
+
+Conditions:
+  CrearProveedor: !Equals [!Ref CrearProveedorOidc, "si"]
+
+Resources:
+  Repositorio:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref Lab
+      # Una etiqueta ya usada no puede apuntar a otra imagen: el commit identifica una sola.
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      Tags:
+        - Key: Project
+          Value: thepower-s18
+        - Key: Lab
+          Value: !Ref Lab
+
+  # Le dice a AWS que acepte tokens firmados por GitHub Actions. No concede ningun permiso
+  # por si mismo: los permisos estan en los roles que confian en el.
+  ProveedorGitHub:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CrearProveedor
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+
+  RolPublicar:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: GitHub Actions publica imagenes del laboratorio S18 solo desde la rama main.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              # StringEquals y no StringLike: ni otra rama, ni una pull request, ni otro repositorio.
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": sts.amazonaws.com
+                "token.actions.githubusercontent.com:sub": !Ref SubPublicar
+      Policies:
+        - PolicyName: publicar-imagenes
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Iniciar sesion en el registro no admite limitar el recurso.
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              # Subir y leer imagenes solo en el repositorio de este laboratorio.
+              # No puede borrar imagenes ni tocar ECS.
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:BatchGetImage
+                  - ecr:DescribeImages
+                Resource: !GetAtt Repositorio.Arn
+      Tags:
+        - Key: Project
+          Value: thepower-s18
+        - Key: Lab
+          Value: !Ref Lab
+
+Outputs:
+  RepositoryName:
+    Description: Variable ECR_REPOSITORY del repositorio de GitHub.
+    Value: !Ref Repositorio
+  RepositoryUri:
+    Value: !GetAtt Repositorio.RepositoryUri
+  RolPublicarArn:
+    Description: Variable AWS_ROLE_PUBLICAR del repositorio de GitHub.
+    Value: !GetAtt RolPublicar.Arn

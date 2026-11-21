@@ -1,0 +1,129 @@
+# Entrega continua, parte 1: al integrar en main se repiten las comprobaciones sobre
+# ese commit y, solo si pasan, se construye UNA imagen, se publica en ECR y se
+# registra su digest. Este workflow no despliega.
+name: Publicar · main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Dos integraciones seguidas publican en orden; no se cancela una publicación a medias.
+concurrency:
+  group: publicar-main
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  comprobaciones:
+    uses: ./.github/workflows/comprobaciones.yml
+
+  publicar:
+    name: Construir una vez y publicar en ECR
+    needs: comprobaciones
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # permite pedir el token OIDC; no da permisos de escritura en GitHub
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      REPOSITORIO: ${{ vars.ECR_REPOSITORY }}
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Sin claves guardadas: GitHub firma un token para este job y AWS lo cambia por
+      # credenciales de una hora. El rol solo confía en «…:ref:refs/heads/main».
+      - name: Obtener credenciales temporales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_PUBLICAR }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: publicar-${{ github.run_id }}
+          mask-aws-account-id: true
+
+      - name: Iniciar sesión de Docker en ECR
+        id: registro
+        run: |
+          CUENTA="$(aws sts get-caller-identity --query Account --output text)"
+          REGISTRO="$CUENTA.dkr.ecr.$AWS_REGION.amazonaws.com"
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRO"
+          echo "registro=$REGISTRO" >> "$GITHUB_OUTPUT"
+          echo "imagen=$REGISTRO/$REPOSITORIO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+      # Las etiquetas del repositorio son inmutables: si se relanza el workflow sobre un
+      # commit ya publicado, se reutiliza su imagen en lugar de intentar sobrescribirla.
+      - name: Comprobar si este commit ya está publicado
+        id: previo
+        run: |
+          DIGEST="$(aws ecr describe-images --repository-name "$REPOSITORIO" \
+            --image-ids "imageTag=$GITHUB_SHA" \
+            --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || true)"
+          if [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "El commit ya estaba publicado: $DIGEST"
+            echo "existe=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Construir la imagen
+        if: steps.previo.outputs.existe == 'no'
+        env:
+          IMAGEN: ${{ steps.registro.outputs.imagen }}
+        run: |
+          # linux/amd64 porque la tarea de Fargate es X86_64. --provenance=false publica
+          # un único manifiesto: un artefacto, un digest.
+          docker build --platform linux/amd64 --provenance=false \
+            --build-arg "APP_VERSION=$GITHUB_SHA" -t "$IMAGEN" .
+
+      - name: Probar exactamente la imagen que se va a publicar
+        if: steps.previo.outputs.existe == 'no'
+        env:
+          IMAGEN: ${{ steps.registro.outputs.imagen }}
+        run: |
+          docker run --rm -d --name api --read-only --cap-drop ALL \
+            -p 127.0.0.1:8000:8000 "$IMAGEN"
+          bash scripts/smoke.sh http://127.0.0.1:8000 "$GITHUB_SHA"
+          docker stop api
+
+      - name: Publicar en ECR
+        if: steps.previo.outputs.existe == 'no'
+        env:
+          IMAGEN: ${{ steps.registro.outputs.imagen }}
+        run: docker push "$IMAGEN"
+
+      - name: Registrar el digest
+        run: |
+          # El digest lo calcula el registro a partir del contenido: es la identidad
+          # que usaremos para desplegar y para volver atrás.
+          DIGEST="$(aws ecr describe-images --repository-name "$REPOSITORIO" \
+            --image-ids "imageTag=$GITHUB_SHA" \
+            --query 'imageDetails[0].imageDigest' --output text)"
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::ECR no devolvió un digest"; exit 1; }
+          {
+            echo "### Imagen publicada"
+            echo ""
+            echo "| Dato | Valor |"
+            echo "|---|---|"
+            echo "| Commit | \`$GITHUB_SHA\` |"
+            echo "| Repositorio ECR | \`$REPOSITORIO\` |"
+            echo "| Etiqueta inmutable | \`$GITHUB_SHA\` |"
+            echo "| **Digest** | \`$DIGEST\` |"
+            echo ""
+            echo "Para desplegar: Actions → «Desplegar · staging» → Run workflow (rama main) con este digest."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Digest publicado: $DIGEST"
+
+      - name: Cerrar la sesión de Docker
+        if: always() && steps.registro.outputs.registro != ''
+        env:
+          REGISTRO: ${{ steps.registro.outputs.registro }}
+        run: docker logout "$REGISTRO"

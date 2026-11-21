@@ -1,0 +1,28 @@
+# PostgreSQL 17 con pgvector para el proyecto final de S20.
+# Puerto NO estándar y solo en loopback: no choca con otro PostgreSQL ni con los laboratorios
+# de S10 (RAG) y S19 (evaluación).
+#
+#   docker compose up -d --wait      arranca y espera a que esté sano
+#   docker compose down              para y conserva los datos (volumen)
+#   docker compose down -v           para y BORRA los datos
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: thepower-s20-postgres
+    environment:
+      # Credenciales ficticias de un contenedor local de práctica; no son un secreto.
+      POSTGRES_USER: s20
+      POSTGRES_PASSWORD: s20_aula_local
+      POSTGRES_DB: s20_agente
+    ports:
+      - "127.0.0.1:54520:5432"
+    volumes:
+      - s20_datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U s20 -d s20_agente"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  s20_datos:

@@ -1,0 +1,353 @@
+[
+  {
+    "id": "T01",
+    "requisito": "AWS Bedrock: modelos y API gestionada",
+    "diapositivas": [
+      3,
+      6,
+      9
+    ],
+    "guion": "Serverless y alternativas; Handler e identidades",
+    "evidencia": "Explicado; disponibilidad real pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "T02",
+    "requisito": "AWS Lambda: evento, contexto y ciclo de ejecución",
+    "diapositivas": [
+      3,
+      4,
+      10,
+      15,
+      16
+    ],
+    "guion": "Serverless y alternativas; Medir frío y caliente",
+    "evidencia": "Handler y RIE locales verificados",
+    "obligatorio": true
+  },
+  {
+    "id": "T03",
+    "requisito": "Arquitectura serverless y responsabilidades",
+    "diapositivas": [
+      3,
+      4,
+      14
+    ],
+    "guion": "Serverless y alternativas",
+    "evidencia": "Explicación y plantillas",
+    "obligatorio": true
+  },
+  {
+    "id": "T04",
+    "requisito": "Alternativas Azure y Google Cloud",
+    "diapositivas": [
+      5,
+      19
+    ],
+    "guion": "Serverless y alternativas; Coste y alternativas",
+    "evidencia": "Comparación funcional y criterios",
+    "obligatorio": true
+  },
+  {
+    "id": "T05",
+    "requisito": "Coste",
+    "diapositivas": [
+      17,
+      18,
+      19
+    ],
+    "guion": "Coste, alternativas y retirada",
+    "evidencia": "Tarifas leídas y calculadora ejecutada; cantidades supuestas",
+    "obligatorio": true
+  },
+  {
+    "id": "T06",
+    "requisito": "Latencia",
+    "diapositivas": [
+      11,
+      15,
+      16
+    ],
+    "guion": "Límites y errores; Medir frío y caliente",
+    "evidencia": "Instrumentación y parser probados; muestra AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "T07",
+    "requisito": "Límites de arquitecturas y elección",
+    "diapositivas": [
+      11,
+      12,
+      19
+    ],
+    "guion": "Límites y errores; Coste y alternativas",
+    "evidencia": "Plazos, cuotas, streaming y carga sostenida explicados",
+    "obligatorio": true
+  },
+  {
+    "id": "E01",
+    "requisito": "HTTP API IAM → Lambda → Bedrock",
+    "diapositivas": [
+      3,
+      7,
+      14
+    ],
+    "guion": "Handler e identidades; Petición firmada",
+    "evidencia": "Plantilla validada; flujo real pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E02",
+    "requisito": "SDK de AWS en Lambda",
+    "diapositivas": [
+      9,
+      10
+    ],
+    "guion": "Handler e identidades",
+    "evidencia": "Petición validada con Stubber y paquete Linux",
+    "obligatorio": true
+  },
+  {
+    "id": "E03",
+    "requisito": "BEDROCK_MODEL_ID y referencia eu.amazon.nova-2-lite-v1:0",
+    "diapositivas": [
+      6
+    ],
+    "guion": "Handler e identidades",
+    "evidencia": "Configuración y perfil esperado explícitos",
+    "obligatorio": true
+  },
+  {
+    "id": "E04",
+    "requisito": "No sustituir por perfil global sin justificación",
+    "diapositivas": [
+      6,
+      21
+    ],
+    "guion": "Handler e identidades",
+    "evidencia": "Guardas europeas y error sin fallback",
+    "obligatorio": true
+  },
+  {
+    "id": "E05",
+    "requisito": "Converse se autoriza con bedrock:InvokeModel",
+    "diapositivas": [
+      7,
+      21
+    ],
+    "guion": "Handler e identidades",
+    "evidencia": "Acción correcta en política y explicación",
+    "obligatorio": true
+  },
+  {
+    "id": "E06",
+    "requisito": "Permisos sobre perfil y modelos/regiones de destino",
+    "diapositivas": [
+      6,
+      7,
+      21
+    ],
+    "guion": "Handler e identidades",
+    "evidencia": "ARNs desde GetInferenceProfile; prueba local de validación",
+    "obligatorio": true
+  },
+  {
+    "id": "E07",
+    "requisito": "Llamante con execute-api:Invoke sobre la ruta",
+    "diapositivas": [
+      7,
+      8,
+      21
+    ],
+    "guion": "Petición firmada",
+    "evidencia": "Política específica generable; asignación externa pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E08",
+    "requisito": "SigV4 con credenciales temporales, sin guardarlas",
+    "diapositivas": [
+      8,
+      22
+    ],
+    "guion": "Petición firmada",
+    "evidencia": "Firma local probada; aceptación IAM pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E09",
+    "requisito": "Solicitar estructura y validar de nuevo",
+    "diapositivas": [
+      9,
+      10,
+      13
+    ],
+    "guion": "Handler e identidades; Límites y errores",
+    "evidencia": "Tool forzada y Pydantic; errores probados",
+    "obligatorio": true
+  },
+  {
+    "id": "E10",
+    "requisito": "Acotar entrada",
+    "diapositivas": [
+      10,
+      12,
+      13
+    ],
+    "guion": "Límites y errores",
+    "evidencia": "8 KiB/2000 caracteres y rechazo antes del SDK",
+    "obligatorio": true
+  },
+  {
+    "id": "E11",
+    "requisito": "Acotar tokens",
+    "diapositivas": [
+      9,
+      12
+    ],
+    "guion": "Límites y errores",
+    "evidencia": "300 por configuración de la referencia",
+    "obligatorio": true
+  },
+  {
+    "id": "E12",
+    "requisito": "Acotar reintentos",
+    "diapositivas": [
+      12,
+      13
+    ],
+    "guion": "Límites y errores",
+    "evidencia": "Un intento SDK; fallos sin repetición",
+    "obligatorio": true
+  },
+  {
+    "id": "E13",
+    "requisito": "Acotar concurrencia",
+    "diapositivas": [
+      4,
+      12
+    ],
+    "guion": "Límites y errores",
+    "evidencia": "Reserva 2 y preflight de cuota; aplicación AWS pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "E14",
+    "requisito": "Timeout cliente/Lambda antes del corte del gateway",
+    "diapositivas": [
+      11
+    ],
+    "guion": "Límites y errores",
+    "evidencia": "35/29/24 y SDK 2/15; margen probado localmente",
+    "obligatorio": true
+  },
+  {
+    "id": "E15",
+    "requisito": "Registrar total, modelo, tokens y errores",
+    "diapositivas": [
+      10,
+      15,
+      16
+    ],
+    "guion": "Medir frío y caliente",
+    "evidencia": "Metadatos y recibos implementados; reales pendientes",
+    "obligatorio": true
+  },
+  {
+    "id": "E16",
+    "requisito": "Identificar cold start con evidencia",
+    "diapositivas": [
+      15,
+      16
+    ],
+    "guion": "Medir frío y caliente",
+    "evidencia": "REPORT unido por request ID; parser probado",
+    "obligatorio": true
+  },
+  {
+    "id": "E17",
+    "requisito": "Comparar con al menos cinco warm",
+    "diapositivas": [
+      16
+    ],
+    "guion": "Medir frío y caliente",
+    "evidencia": "Lote acotado y criterio de completitud implementados",
+    "obligatorio": true
+  },
+  {
+    "id": "E18",
+    "requisito": "Declarar cold no capturado sin inferir por orden",
+    "diapositivas": [
+      16
+    ],
+    "guion": "Medir frío y caliente",
+    "evidencia": "Caso sin REPORT probado y explicado",
+    "obligatorio": true
+  },
+  {
+    "id": "E19",
+    "requisito": "Estimar 1000 solicitudes sin ejecutarlas",
+    "diapositivas": [
+      17,
+      18
+    ],
+    "guion": "Coste y alternativas",
+    "evidencia": "Calculadora offline ejecutada",
+    "obligatorio": true
+  },
+  {
+    "id": "E20",
+    "requisito": "Lambda/API/Bedrock/logs con región y tarifas",
+    "diapositivas": [
+      17,
+      18
+    ],
+    "guion": "Coste y alternativas",
+    "evidencia": "Desglose reproducible y fuentes; S3/tráfico adicionales visibles",
+    "obligatorio": true
+  },
+  {
+    "id": "E21",
+    "requisito": "Elegir otra arquitectura por tiempo, streaming, latencia o carga",
+    "diapositivas": [
+      5,
+      11,
+      19
+    ],
+    "guion": "Coste y alternativas",
+    "evidencia": "Criterios y límites de comparaciones explicados",
+    "obligatorio": true
+  },
+  {
+    "id": "E22",
+    "requisito": "Entregar código, configuración, petición, errores y medidas",
+    "diapositivas": [
+      20,
+      22
+    ],
+    "guion": "Entrega y preguntas",
+    "evidencia": "Paquete local; evidencias cloud pendientes",
+    "obligatorio": true
+  },
+  {
+    "id": "E23",
+    "requisito": "Limpieza de recursos",
+    "diapositivas": [
+      20
+    ],
+    "guion": "Coste, alternativas y retirada",
+    "evidencia": "Procedimiento con propiedad/etiquetas; retirada real pendiente",
+    "obligatorio": true
+  },
+  {
+    "id": "O01",
+    "requisito": "Streaming si se soporta, permisos/límites propios",
+    "diapositivas": [
+      19,
+      20
+    ],
+    "guion": "Coste y alternativas; Entrega",
+    "evidencia": "Explicado como opcional; no implementado",
+    "obligatorio": false
+  }
+]

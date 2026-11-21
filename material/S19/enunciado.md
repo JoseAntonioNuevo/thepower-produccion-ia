@@ -1,0 +1,52 @@
+# S19 · Enunciado de la práctica
+
+> Texto del enunciado tal como figura en `ejercicios.docx` (correo del 29/09/2026, id de mensaje
+> `1a0ebc9b585e70bc`), leído en Gmail el 16/11/2026 por la sesión anterior. Copia literal en
+> [fuentes/ejercicio-S19-original.txt](fuentes/ejercicio-S19-original.txt). Aquí solo se añade formato.
+> La práctica es **opcional** (indicación de la escuela del 04/11/2026).
+
+## Sesión 19 · Evaluación y testing de sistemas de IA
+
+Construir un sistema RAG completo desde cero con evaluación y testing integrados
+
+### Enunciado
+
+Construye un RAG pequeño e incorpora evaluación y tests desde el inicio. La entrega debe reconstruir el sistema desde documentos en bruto y un índice vacío, medir recuperación y generación por separado y mostrar si un cambio mejora o empeora el resultado.
+
+### Explicación completa del ejercicio
+
+Implementa ingesta de al menos ocho documentos ficticios, fragmentación, embeddings, búsqueda vectorial, generación con fuentes y rechazo por falta de evidencia. Usa Python y PostgreSQL con pgvector. Configura los modelos de generación, embeddings y evaluación por variables de entorno y registra sus versiones. No es necesario añadir una interfaz ni un agente.
+
+Prepara datos de evaluación. Reserva 20 preguntas: 14 respondibles con respuesta y documentos de referencia, y seis sin respuesta. Usa ejemplos de validación distintos para elegir prompts, umbrales y configuración. No indexes las preguntas ni las respuestas esperadas. Fija los criterios de corrección antes de ejecutar el test.
+
+Mide recuperación. Calcula precision@5 y recall@5 sobre documentos relevantes, sin contar dos fragmentos del mismo documento como dos aciertos. Explica los denominadores. Para las preguntas sin respuesta, mide el rechazo correcto por separado: no inventes un recall cuando no hay documentos relevantes.
+
+Mide generación con Ragas. Aísla el evaluador y fija ragas==0.4.3 y langchain-community==0.3.31; guarda también el bloqueo del resto de dependencias. Usa ragas.metrics.collections. Faithfulness mide el apoyo en el contexto y Response Relevancy se implementa con AnswerRelevancy, que necesita un evaluador y embeddings inicializados. En Faithfulness.ascore pasa user_input, response y retrieved_contexts; lee la puntuación en .value.
+
+Comprueba las puntuaciones. Revisa manualmente al menos cinco respuestas. La fidelidad al contexto no demuestra por sí sola que la respuesta sea correcta. Registra errores del evaluador, contexto vacío y valores NaN como no evaluables, con el motivo y la cobertura; no los conviertas en aciertos. Cuenta las abstenciones incorrectas aparte.
+
+Compara y observa. Ejecuta dos configuraciones cambiando solo una variable, como el tamaño del fragmento o el prompt. Usa el mismo test y evaluador. Registra en Langfuse respuesta, fuentes, métricas, latencia, tokens y coste por consulta; separa el consumo del evaluador. Si falta el coste, comprueba el modelo y define su precio. No reajustes las reglas después de ver el test.
+
+Automatiza las comprobaciones. Usa pytest para probar ingesta sin duplicados, formato, fuentes y errores con respuestas simuladas. Separa las evaluaciones reales mediante @pytest.mark.llm, excluidas por defecto. Define umbrales con margen usando validación y demuestra, con resultados degradados de prueba, que el control de regresiones falla cuando debe.
+
+Ampliación opcional. Añade tests de enrutado de un agente o CRAG para comprobar decisiones y límites de llamadas. No sustituyen los tests del RAG.
+
+Entrega y valoración. Entrega implementación, datos, entorno bloqueado, tests y tabla comparativa con fallos y cobertura. Se valorarán la reconstrucción completa, las métricas separadas, la trazabilidad y las regresiones útiles.
+
+Dedicación orientativa: 7–9 horas activas con entorno preparado.
+
+Documentación de apoyo: Faithfulness en Ragas 0.4.3 · Ragas con Gemini · Tokens y coste en Langfuse
+
+## Enlaces de apoyo del enunciado
+
+- [Faithfulness en Ragas 0.4.3](https://github.com/vibrantlabsai/ragas/blob/v0.4.3/src/ragas/metrics/collections/faithfulness/metric.py)
+- [Ragas con Gemini](https://docs.ragas.io/en/stable/howtos/integrations/gemini/)
+- [Tokens y coste en Langfuse](https://langfuse.com/docs/observability/features/token-and-cost-tracking)
+
+## Cómo seguirlo con este paquete
+
+Guía paso a paso: [demo-evaluacion/docs/ejercicio.md](demo-evaluacion/docs/ejercicio.md). Dos avisos sobre la API de Ragas 0.4.3,
+comprobados al instalar las versiones fijadas ([detalle](demo-evaluacion/evaluador/README.md)):
+
+1. `AnswerRelevancy.ascore` recibe `user_input` y `response`; **no** recibe `retrieved_contexts`.
+2. La llamada síncrona de la guía «Ragas con Gemini» falla con `ascore`. La demo usa un cliente asíncrono y lo declara como sustitución.
