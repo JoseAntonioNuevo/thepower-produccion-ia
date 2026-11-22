@@ -6,10 +6,17 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     # PostgreSQL + pgvector. Los vectores viajan como texto '[0.1,0.2,...]'::vector.
     "psycopg[binary]==3.3.9",
-    # Perfil real: generación y embeddings con la API de Gemini.
-    "google-genai==3.3.0",
+    # Perfil real: generación y embeddings SIEMPRE a través de OpenRouter, que expone una
+    # API compatible con OpenAI. Los modelos se eligen en .env (S19_GEN_MODEL, S19_EMBEDDING_MODEL).
+    "openai==3.3.0",
     # Observabilidad: trazas, puntuaciones, tokens y coste.
     "langfuse==5.2.0",
+    # Orquestación: la consulta del RAG y la ampliación CRAG son grafos de LangGraph
+    # (mismas versiones que en S5/S6). El modelo se sigue llamando con el cliente de OpenRouter.
+    "langgraph==1.2.11",
+    "langchain-core==1.5.5",
+    # Chat en la terminal (`python s19.py chat`), la misma librería que la TUI de S5/S6.
+    "opentui==0.1.2",
 ]
 
 [dependency-groups]

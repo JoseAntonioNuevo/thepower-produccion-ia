@@ -20,5 +20,16 @@
         "prompt_version": "v2"
       }
     }
+  },
+  "alternativa_solo_modelo": {
+    "nota": "Evaluación de modelos: solo cambia el modelo generativo. Mismo índice (fragmentos de 320), prompt v1, test y juez. Ejecutar las dos con el MISMO archivo de entorno (`--env .env.sol-opus`): sin temperatura en ninguna (GPT-6.2 Sol no la admite), razonamiento bajo y juez Claude Opus 5.5, que no es ninguno de los candidatos. Solo perfil real.",
+    "variantes": {
+      "MH": {
+        "gen_modelo": "google/gemini-4-hydrogen"
+      },
+      "MS": {
+        "gen_modelo": "openai/gpt-6.2-sol"
+      }
+    }
   }
 }

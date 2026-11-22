@@ -1,0 +1,625 @@
+{
+  "schema_version": "s19.informe.v1",
+  "run_id": "test-B-real-20261122-001903",
+  "creado": "2026-11-22T00:20:13+01:00",
+  "conjunto": "test",
+  "huella_conjunto": "18d20c777136",
+  "perfil": "real",
+  "aviso": null,
+  "config": {
+    "perfil": "real",
+    "embedding_modelo": "openai/text-embedding-3-small",
+    "embedding_dim": 768,
+    "gen_modelo": "google/gemini-4-hydrogen",
+    "chunk_size": 900,
+    "chunk_overlap": 0,
+    "k_fragmentos": 12,
+    "k_documentos": 5,
+    "k_contexto": 4,
+    "umbral_evidencia": 0.5223,
+    "prompt_version": "v1",
+    "config_id": "B",
+    "gen_max_tokens": 2048,
+    "gen_temperatura": 0.0,
+    "gen_proveedores": [],
+    "embedding_proveedores": [],
+    "embedding_enviar_dim": true,
+    "plantilla_documento": "{titulo}\n{texto}",
+    "plantilla_consulta": "{texto}"
+  },
+  "modelos": {
+    "generacion": "google/gemini-4-hydrogen",
+    "embeddings": "openai/text-embedding-3-small"
+  },
+  "versiones": {
+    "psycopg": "3.3.9",
+    "openai": "3.3.0",
+    "langfuse": "5.2.0"
+  },
+  "indice_id": "idx-de76af5553b5",
+  "n_casos": 20,
+  "n_respondidas": 12,
+  "n_rechazos": 8,
+  "errores_sistema": [],
+  "n_errores_sistema": 0,
+  "recuperacion": {
+    "unidad": "documentos distintos; dos fragmentos del mismo documento = un acierto",
+    "n_preguntas": 14,
+    "de_respondibles": 14,
+    "precision_at_5": 0.2286,
+    "precision_techo": 0.2429,
+    "recall_at_5": 0.9643,
+    "documentos_recuperados_media": 5.0,
+    "denominadores": "precision@5: siempre 5 · recall@5: documentos de referencia de cada pregunta"
+  },
+  "rechazo": {
+    "rechazos_correctos": 6,
+    "de_sin_respuesta": 6,
+    "tasa_rechazos_correctos": 1.0,
+    "respuestas_indebidas": 0,
+    "abstenciones_incorrectas": 2,
+    "de_respondibles": 14,
+    "tasa_abstenciones_incorrectas": 0.1429
+  },
+  "correccion": {
+    "criterio": "datos clave presentes + cita de un documento de referencia (datos/criterios.md)",
+    "aciertos": 11,
+    "de_respondibles": 14,
+    "tasa_aciertos": 0.7857,
+    "aviso": "comprobación automática de cadenas; la revisión manual decide los casos dudosos"
+  },
+  "generacion": {
+    "no_evaluables": [
+      {
+        "caso_id": "T12",
+        "metrica": "faithfulness",
+        "motivo": "respuesta_vacia"
+      },
+      {
+        "caso_id": "T12",
+        "metrica": "answer_relevancy",
+        "motivo": "respuesta_vacia"
+      }
+    ],
+    "no_aplica_por_rechazo": 8,
+    "faithfulness": {
+      "media": 1.0,
+      "n_evaluables": 11,
+      "n_esperados": 12,
+      "cobertura": 0.9167
+    },
+    "answer_relevancy": {
+      "media": 0.8739,
+      "n_evaluables": 11,
+      "n_esperados": 12,
+      "cobertura": 0.9167
+    },
+    "evaluador": {
+      "modo": "real",
+      "ruta": "openrouter",
+      "llm": "anthropic/claude-opus-5.5",
+      "embeddings": "openai/text-embedding-3-small",
+      "ragas": "0.4.3",
+      "langchain_community": "0.3.31",
+      "python": "3.12.16",
+      "aviso": null,
+      "ajustes": {
+        "llm_proveedores": [],
+        "embedding_proveedores": [],
+        "llm_extra": {},
+        "quitar_parametros": [
+          "temperature",
+          "top_p"
+        ],
+        "max_tokens": 4096
+      }
+    },
+    "aviso": "fidelidad al contexto no demuestra que la respuesta sea correcta"
+  },
+  "operacion": {
+    "latencia_ms_mediana": 2985.2,
+    "latencia_ms_maxima": 10458.6,
+    "sistema": {
+      "llamadas": {
+        "embeddings": 20,
+        "generacion": 15
+      },
+      "tokens_entrada": 12979,
+      "tokens_salida": 7901,
+      "coste_usd_estimado": 0.078726,
+      "coste_fuente": "openrouter"
+    },
+    "evaluador": {
+      "llamadas_llm": 55,
+      "llamadas_embeddings": 22,
+      "tokens_entrada": 72326,
+      "tokens_salida": 7220,
+      "coste_usd_estimado": 0.4337276,
+      "segundos": 116.96
+    },
+    "produccion": {
+      "consultas": 20,
+      "latencia_ms_p50": 2985.2,
+      "latencia_ms_p95": 7750.4,
+      "tasa_error": 0.0,
+      "tasa_rechazo": 0.4,
+      "rechazos_sin_llamar_al_modelo": 5,
+      "llamadas_al_modelo": 15,
+      "coste_usd_por_consulta": 0.00393678,
+      "coste_usd_por_1000_consultas": 3.9368,
+      "peso_del_juez": 0.8464,
+      "nota": "p95 por rango más cercano; coste = generación + embeddings de las preguntas; el juez va aparte"
+    }
+  },
+  "casos": [
+    {
+      "caso_id": "T01",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "01-arquitectura-aethercloud",
+        "02-autenticacion-mtls-tokens",
+        "04-almacenamiento-y-cifrado-kms",
+        "09-observabilidad-opentelemetry",
+        "10-despliegues-canary-y-rollback"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T02",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "02-autenticacion-mtls-tokens",
+        "01-arquitectura-aethercloud",
+        "08-residencia-datos-y-rgpd",
+        "05-sla-y-creditos-servicio",
+        "04-almacenamiento-y-cifrado-kms"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T03",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "02-autenticacion-mtls-tokens",
+        "08-residencia-datos-y-rgpd",
+        "04-almacenamiento-y-cifrado-kms",
+        "09-observabilidad-opentelemetry",
+        "03-limites-y-cuotas-api"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T04",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "03-limites-y-cuotas-api",
+        "06-respuesta-a-incidentes",
+        "05-sla-y-creditos-servicio",
+        "07-facturacion-y-planes",
+        "01-arquitectura-aethercloud"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T05",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "03-limites-y-cuotas-api",
+        "05-sla-y-creditos-servicio",
+        "09-observabilidad-opentelemetry",
+        "06-respuesta-a-incidentes",
+        "10-despliegues-canary-y-rollback"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T06",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "04-almacenamiento-y-cifrado-kms",
+        "10-despliegues-canary-y-rollback",
+        "06-respuesta-a-incidentes",
+        "02-autenticacion-mtls-tokens",
+        "08-residencia-datos-y-rgpd"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T07",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "04-almacenamiento-y-cifrado-kms",
+        "10-despliegues-canary-y-rollback",
+        "05-sla-y-creditos-servicio",
+        "09-observabilidad-opentelemetry",
+        "06-respuesta-a-incidentes"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T08",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "03-limites-y-cuotas-api",
+        "07-facturacion-y-planes",
+        "08-residencia-datos-y-rgpd",
+        "02-autenticacion-mtls-tokens"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": true,
+      "respuesta_indebida": null,
+      "acierto": false,
+      "datos_clave_ausentes": [
+        "15 días",
+        "incidencia"
+      ],
+      "cita_documento_relevante": false
+    },
+    {
+      "caso_id": "T09",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "06-respuesta-a-incidentes",
+        "07-facturacion-y-planes",
+        "04-almacenamiento-y-cifrado-kms",
+        "10-despliegues-canary-y-rollback"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T10",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "06-respuesta-a-incidentes",
+        "10-despliegues-canary-y-rollback",
+        "04-almacenamiento-y-cifrado-kms",
+        "03-limites-y-cuotas-api",
+        "09-observabilidad-opentelemetry"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T11",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "07-facturacion-y-planes",
+        "03-limites-y-cuotas-api",
+        "06-respuesta-a-incidentes",
+        "09-observabilidad-opentelemetry"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T12",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "06-respuesta-a-incidentes",
+        "10-despliegues-canary-y-rollback",
+        "05-sla-y-creditos-servicio",
+        "03-limites-y-cuotas-api",
+        "01-arquitectura-aethercloud"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 0.5,
+      "precision_techo": 0.4,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": false,
+      "datos_clave_ausentes": [
+        "24x7",
+        "15 minutos"
+      ],
+      "cita_documento_relevante": false
+    },
+    {
+      "caso_id": "T13",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "08-residencia-datos-y-rgpd",
+        "09-observabilidad-opentelemetry",
+        "04-almacenamiento-y-cifrado-kms",
+        "02-autenticacion-mtls-tokens",
+        "10-despliegues-canary-y-rollback"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.4,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.4,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "T14",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "10-despliegues-canary-y-rollback",
+        "09-observabilidad-opentelemetry",
+        "04-almacenamiento-y-cifrado-kms",
+        "06-respuesta-a-incidentes",
+        "01-arquitectura-aethercloud"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.4,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.4,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": true,
+      "respuesta_indebida": null,
+      "acierto": false,
+      "datos_clave_ausentes": [
+        "800 milisegundos",
+        "1500 milisegundos"
+      ],
+      "cita_documento_relevante": false
+    },
+    {
+      "caso_id": "T15",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "07-facturacion-y-planes",
+        "05-sla-y-creditos-servicio",
+        "01-arquitectura-aethercloud",
+        "03-limites-y-cuotas-api",
+        "06-respuesta-a-incidentes"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "T16",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "06-respuesta-a-incidentes",
+        "10-despliegues-canary-y-rollback",
+        "03-limites-y-cuotas-api",
+        "04-almacenamiento-y-cifrado-kms",
+        "05-sla-y-creditos-servicio"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "T17",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "01-arquitectura-aethercloud",
+        "08-residencia-datos-y-rgpd",
+        "07-facturacion-y-planes",
+        "10-despliegues-canary-y-rollback",
+        "09-observabilidad-opentelemetry"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "T18",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "04-almacenamiento-y-cifrado-kms",
+        "08-residencia-datos-y-rgpd",
+        "03-limites-y-cuotas-api",
+        "06-respuesta-a-incidentes",
+        "07-facturacion-y-planes"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "T19",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "01-arquitectura-aethercloud",
+        "06-respuesta-a-incidentes",
+        "07-facturacion-y-planes",
+        "05-sla-y-creditos-servicio",
+        "02-autenticacion-mtls-tokens"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "T20",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "07-facturacion-y-planes",
+        "03-limites-y-cuotas-api",
+        "08-residencia-datos-y-rgpd",
+        "10-despliegues-canary-y-rollback"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    }
+  ]
+}

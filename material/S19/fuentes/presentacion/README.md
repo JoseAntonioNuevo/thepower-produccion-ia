@@ -82,4 +82,4 @@ están dibujados con formas nativas.
 | PERFIL DOBLE · no mide ningún modelo | Cifras de `resultados/ejemplo-doble` | 7, 10, 17 |
 | EJEMPLO ILUSTRATIVO · no es una medición | Números construidos para explicar un cálculo | 9, 12, 13, 16, 25 |
 | ESQUEMA · no es una captura | Dibujo de lo que registra el código; Langfuse no se ejecutó | 26 |
-| PERFIL REAL · no ejecutado | Estimación de gasto, no consumo medido | 28 |
+| PERFIL REAL · MEDIDO EL 22/11/2026 | Coste y aciertos medidos con modelos reales vía OpenRouter (`resultados/ejemplo-real`) | 31 |

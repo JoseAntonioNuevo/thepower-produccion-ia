@@ -70,13 +70,25 @@
       "delta": 0.4
     },
     {
-      "metrica": "coste del sistema (USD, estimado)",
+      "metrica": "latencia p95 (ms)",
+      "A": 10.0,
+      "B": 10.7,
+      "delta": 0.7
+    },
+    {
+      "metrica": "coste por consulta (USD)",
       "A": null,
       "B": null,
       "delta": null
     },
     {
-      "metrica": "coste del evaluador (USD, estimado)",
+      "metrica": "coste del sistema (USD)",
+      "A": null,
+      "B": null,
+      "delta": null
+    },
+    {
+      "metrica": "coste del evaluador (USD)",
       "A": null,
       "B": null,
       "delta": null

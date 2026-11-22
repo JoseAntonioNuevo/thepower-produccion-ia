@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS indices (
   indice_id        TEXT PRIMARY KEY,
   perfil           TEXT NOT NULL,                 -- 'doble' (sin coste) o 'real'
   embedding_modelo TEXT NOT NULL,                 -- el MISMO al indexar y al consultar
-  embedding_dim    INTEGER NOT NULL CHECK (embedding_dim = 768),
+  embedding_dim    INTEGER NOT NULL CHECK (embedding_dim > 0),  -- la decide el modelo de .env
   chunk_size       INTEGER NOT NULL,
   chunk_overlap    INTEGER NOT NULL,
   n_documentos     INTEGER NOT NULL,
@@ -23,13 +23,19 @@ CREATE TABLE IF NOT EXISTS fragmentos (
   titulo         TEXT NOT NULL,
   contenido      TEXT NOT NULL,
   contenido_hash TEXT NOT NULL,
-  embedding      vector(768) NOT NULL,
+  embedding      vector NOT NULL,                 -- sin dimensión fija: cada índice guarda la suya
   PRIMARY KEY (indice_id, fragmento_id),
   -- Segunda barrera contra duplicados: el mismo texto no entra dos veces en un índice.
   UNIQUE (indice_id, contenido_hash)
 );
 
--- HNSW con distancia coseno, como en S10. Con decenas de filas no aporta velocidad:
--- la evaluación usa búsqueda exacta para no añadir la aproximación del índice como variable.
-CREATE INDEX IF NOT EXISTS fragmentos_embedding_hnsw
-  ON fragmentos USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+-- Sin índice HNSW. En S10 se usó uno, pero HNSW exige una dimensión fija y aquí el modelo de
+-- embeddings (y por tanto la dimensión) se cambia desde .env. Con decenas de filas la búsqueda
+-- exacta es instantánea y además evita que la aproximación del índice sea otra variable al
+-- evaluar. En producción, con el modelo ya decidido, se fija vector(N) y se crea el HNSW.
+
+-- Migración de bases creadas con la versión anterior (vector(768) fijo). Idempotente.
+DROP INDEX IF EXISTS fragmentos_embedding_hnsw;
+ALTER TABLE fragmentos ALTER COLUMN embedding TYPE vector;
+ALTER TABLE indices DROP CONSTRAINT IF EXISTS indices_embedding_dim_check;
+ALTER TABLE indices ADD CONSTRAINT indices_embedding_dim_check CHECK (embedding_dim > 0);

@@ -508,6 +508,7 @@ TAGS = {
     "salida": ("SALIDA REAL DEL PERFIL DOBLE · 17/11/2026", BLUE, DARK),
     "codigo": ("CÓDIGO DE LA DEMO", MINT, DARK),
     "pendiente": ("PERFIL REAL · no ejecutado", CORAL, DARK),
+    "real": ("PERFIL REAL · MEDIDO EL 22/11/2026", MINT, DARK),
 }
 
 

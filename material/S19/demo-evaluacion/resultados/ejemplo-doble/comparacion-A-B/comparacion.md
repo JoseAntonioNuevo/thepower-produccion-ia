@@ -16,8 +16,10 @@ A = `320` (`test-A`) · B = `900` (`test-B`) · mismo conjunto `test` de 20 caso
 | answer_relevancy (media) | 0,44 | 0,53 | +0,08 |
 | answer_relevancy (cobertura) | 1,00 | 1,00 | 0,00 |
 | latencia mediana (ms) | 9,4 | 9,8 | +0,4 |
-| coste del sistema (USD, estimado) | sin dato | sin dato | sin dato |
-| coste del evaluador (USD, estimado) | sin dato | sin dato | sin dato |
+| latencia p95 (ms) | 10,0 | 10,7 | +0,7 |
+| coste por consulta (USD) | sin dato | sin dato | sin dato |
+| coste del sistema (USD) | sin dato | sin dato | sin dato |
+| coste del evaluador (USD) | sin dato | sin dato | sin dato |
 
 ## Casos cuyo resultado cambia
 

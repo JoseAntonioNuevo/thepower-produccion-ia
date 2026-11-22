@@ -4,7 +4,8 @@ Hay dos perfiles y NUNCA se mezclan ni se sustituyen entre sí:
 
 - `doble`: código local determinista, sin red ni coste. Sirve para tests y para seguir la
   práctica sin claves. Sus resultados NO miden ningún modelo y van rotulados como tales.
-- `real`: API de Gemini. Solo se construye con `--execute` y con GEMINI_API_KEY.
+- `real`: SIEMPRE OpenRouter (API compatible con OpenAI). Solo se construye con `--execute`
+  y con OPENROUTER_API_KEY. Los modelos se eligen en .env y se cambian sin tocar el código.
 
 Si el perfil real falla, el error se registra. No se cae al doble para «completar» el lote.
 """
@@ -12,8 +13,8 @@ Si el perfil real falla, el error se registra. No se cae al doble para «complet
 from __future__ import annotations
 
 import hashlib
+import json
 import math
-import os
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -32,7 +33,10 @@ class Generacion:
     texto: str
     tokens_entrada: int | None  # None = desconocido; nunca se inventa
     tokens_salida: int | None
-    model_version: str | None = None  # versión servida por la API; None en perfil doble
+    model_version: str | None = None  # modelo exacto que sirvió la API; None en perfil doble
+    coste_usd: float | None = None  # coste real informado por OpenRouter; None si no lo dice
+    proveedor_servido: str | None = None  # quién ejecutó el modelo dentro de OpenRouter
+    fin: str | None = None  # finish_reason: "length" = se agotó el máximo de tokens
 
 
 # ----------------------------------------------------------------- utilidades de texto
@@ -129,54 +133,109 @@ class GeneradorDoble:
         return Generacion(texto, None, None)
 
 
-# ----------------------------------------------------------------- perfil real (Gemini)
-def _cliente_gemini():
-    clave = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not clave:
-        raise ErrorConfiguracion("Falta GEMINI_API_KEY para el perfil real")
-    from google import genai
+# ----------------------------------------------------------------- perfil real (OpenRouter)
+class EmbeddingsOpenRouter:
+    """Embeddings de cualquier modelo de OpenRouter (`S19_EMBEDDING_MODEL`).
 
-    return genai.Client(api_key=clave)
+    - Pide `dimensions` = S19_EMBEDDING_DIM si S19_EMBEDDING_ENVIAR_DIM=true. Si el modelo no
+      admite reducir la dimensión, pon false y S19_EMBEDDING_DIM con su dimensión nativa.
+    - Comprueba SIEMPRE la longitud recibida: un vector de otra dimensión es un error, no se recorta.
+    - Las plantillas de .env deciden cómo se presenta el texto (algunos modelos esperan prefijos).
+    """
 
+    proveedor = "OpenRouter"
 
-class EmbeddingsGemini:
-    """Embeddings de Gemini. Una petición por texto y siempre con la dimensión del esquema."""
+    def __init__(self, cfg: Config, cliente=None):
+        self.nombre, self.dim, self.cfg = cfg.embedding_modelo, cfg.embedding_dim, cfg
+        from rag.openrouter import cliente as crear_cliente
+        from rag.openrouter import cuerpo_extra, json_env
 
-    proveedor = "Gemini API"
+        self._cliente = cliente or crear_cliente()
+        self._extra = cuerpo_extra(cfg.embedding_proveedores or (), json_env("S19_EMBEDDING_EXTRA"))
+        self.llamadas, self.coste_usd, self.coste_conocido = 0, 0.0, True
 
-    def __init__(self, modelo: str, dim: int, cliente=None):
-        self.nombre, self.dim = modelo, dim
-        self._cliente = cliente or _cliente_gemini()
-        self.llamadas = 0
+    def _incrustar(self, texto: str) -> list[float]:
+        from rag.openrouter import leer_uso
 
-    def _incrustar(self, texto: str, tarea: str | None) -> list[float]:
-        from google.genai import types
-
-        opciones = {"output_dimensionality": self.dim}
-        if tarea:  # solo gemini-embedding-001 admite task_type
-            opciones["task_type"] = tarea
+        opciones = {"dimensions": self.dim} if self.cfg.embedding_enviar_dim else {}
         try:
-            r = self._cliente.models.embed_content(
-                model=self.nombre, contents=texto, config=types.EmbedContentConfig(**opciones)
+            r = self._cliente.embeddings.create(
+                model=self.nombre, input=texto, encoding_format="float", extra_body=self._extra or None, **opciones
             )
         except Exception as exc:  # el error del proveedor sube tal cual, con su tipo
-            raise ErrorProveedor(f"embeddings: {type(exc).__name__}") from exc
+            raise ErrorProveedor(f"embeddings: {type(exc).__name__}: {exc}") from exc
         self.llamadas += 1
-        valores = list(r.embeddings[0].values)
+        uso = leer_uso(r)
+        if uso.coste_usd is None:
+            self.coste_conocido = False
+        else:
+            self.coste_usd += uso.coste_usd
+        if not getattr(r, "data", None):
+            raise ErrorProveedor("embeddings: la respuesta no trae ningún vector")
+        valores = list(r.data[0].embedding)
         if len(valores) != self.dim:
-            raise ErrorProveedor(f"embeddings: llegaron {len(valores)} dimensiones, no {self.dim}")
+            raise ErrorProveedor(
+                f"embeddings: {self.nombre} devolvió {len(valores)} dimensiones y S19_EMBEDDING_DIM={self.dim}. "
+                f"Pon S19_EMBEDDING_DIM={len(valores)} (y S19_EMBEDDING_ENVIAR_DIM=false si el modelo no "
+                "admite reducirla) y vuelve a ingestar."
+            )
         return valores
 
     def incrustar_documento(self, titulo: str, texto: str) -> list[float]:
-        if self.nombre.startswith("gemini-embedding-2"):
-            # Embedding 2 no acepta task_type: la tarea va como prefijo (documentación de Google).
-            return self._incrustar(f"title: {titulo} | text: {texto}", None)
-        return self._incrustar(f"{titulo}\n{texto}", "RETRIEVAL_DOCUMENT")
+        return self._incrustar(self.cfg.plantilla_documento.format(titulo=titulo, texto=texto))
 
     def incrustar_consulta(self, texto: str) -> list[float]:
-        if self.nombre.startswith("gemini-embedding-2"):
-            return self._incrustar(f"task: question answering | query: {texto}", None)
-        return self._incrustar(texto, "RETRIEVAL_QUERY")
+        return self._incrustar(self.cfg.plantilla_consulta.format(texto=texto))
+
+
+class GeneradorOpenRouter:
+    """Generación con cualquier modelo de chat de OpenRouter (`S19_GEN_MODEL`)."""
+
+    proveedor = "OpenRouter"
+
+    def __init__(self, cfg: Config, cliente=None):
+        from rag.openrouter import cliente as crear_cliente
+        from rag.openrouter import cuerpo_extra, json_env
+
+        self.nombre, self.cfg = cfg.gen_modelo, cfg
+        self._cliente = cliente or crear_cliente()
+        extra = json.loads(cfg.gen_extra) if cfg.gen_extra else json_env("S19_GEN_EXTRA")
+        self._extra = cuerpo_extra(cfg.gen_proveedores or (), extra)
+        self.llamadas = 0
+
+    def generar(self, pregunta: str, contextos: list[tuple[str, str]], prompt_version: str) -> Generacion:
+        from rag.openrouter import leer_uso
+
+        if prompt_version not in INSTRUCCIONES:
+            raise ErrorConfiguracion(f"prompt_version desconocida: {prompt_version}")
+        opciones = {"max_tokens": self.cfg.gen_max_tokens or 2048}
+        if self.cfg.gen_temperatura is not None:
+            opciones["temperature"] = self.cfg.gen_temperatura
+        try:
+            r = self._cliente.chat.completions.create(
+                model=self.nombre,
+                messages=[
+                    {"role": "system", "content": INSTRUCCIONES[prompt_version]},
+                    {"role": "user", "content": componer_prompt(pregunta, contextos)},
+                ],
+                extra_body=self._extra or None,
+                **opciones,
+            )
+        except Exception as exc:
+            raise ErrorProveedor(f"generación: {type(exc).__name__}: {exc}") from exc
+        self.llamadas += 1
+        if not getattr(r, "choices", None):
+            raise ErrorProveedor("generación: la respuesta no trae ninguna opción")
+        uso = leer_uso(r)
+        return Generacion(
+            (r.choices[0].message.content or "").strip(),
+            uso.tokens_entrada,
+            uso.tokens_salida,
+            fin=getattr(r.choices[0], "finish_reason", None),
+            model_version=uso.modelo_servido,
+            coste_usd=uso.coste_usd,
+            proveedor_servido=uso.proveedor_servido,
+        )
 
 
 INSTRUCCIONES = {
@@ -200,42 +259,6 @@ def componer_prompt(pregunta: str, contextos: list[tuple[str, str]]) -> str:
     return f"FRAGMENTOS\n{bloques}\n\nPREGUNTA\n{pregunta}"
 
 
-class GeneradorGemini:
-    proveedor = "Gemini API"
-
-    def __init__(self, modelo: str, cliente=None, max_tokens: int = 1024):
-        self.nombre, self.max_tokens = modelo, max_tokens
-        self._cliente = cliente or _cliente_gemini()
-        self.llamadas = 0
-
-    def generar(self, pregunta: str, contextos: list[tuple[str, str]], prompt_version: str) -> Generacion:
-        from google.genai import types
-
-        if prompt_version not in INSTRUCCIONES:
-            raise ErrorConfiguracion(f"prompt_version desconocida: {prompt_version}")
-        try:
-            r = self._cliente.models.generate_content(
-                model=self.nombre,
-                contents=componer_prompt(pregunta, contextos),
-                config=types.GenerateContentConfig(
-                    system_instruction=INSTRUCCIONES[prompt_version],
-                    temperature=0,
-                    max_output_tokens=self.max_tokens,
-                ),
-            )
-        except Exception as exc:
-            raise ErrorProveedor(f"generación: {type(exc).__name__}") from exc
-        self.llamadas += 1
-        uso = getattr(r, "usage_metadata", None)
-        entrada = getattr(uso, "prompt_token_count", None)
-        salida = getattr(uso, "candidates_token_count", None)
-        pensamiento = getattr(uso, "thoughts_token_count", None)
-        if salida is not None and pensamiento:
-            salida += pensamiento  # los tokens de razonamiento se facturan como salida
-        model_version = getattr(r, "model_version", None) or None
-        return Generacion((r.text or "").strip(), entrada, salida, model_version)
-
-
 # ----------------------------------------------------------------- fábrica
 @dataclass
 class Proveedores:
@@ -249,11 +272,10 @@ def crear_proveedores(cfg: Config, execute: bool = False) -> Proveedores:
         return Proveedores(EmbeddingsDoble(cfg.embedding_dim), GeneradorDoble())
     if not execute:
         raise ErrorConfiguracion(
-            "El perfil real consume la API de Gemini: repite el comando con --execute "
+            "El perfil real consume la API de OpenRouter: repite el comando con --execute "
             "cuando el gasto esté autorizado. No se usa el doble en su lugar."
         )
-    cliente = _cliente_gemini()
-    return Proveedores(
-        EmbeddingsGemini(cfg.embedding_modelo, cfg.embedding_dim, cliente),
-        GeneradorGemini(cfg.gen_modelo, cliente),
-    )
+    from rag.openrouter import cliente
+
+    compartido = cliente()
+    return Proveedores(EmbeddingsOpenRouter(cfg, compartido), GeneradorOpenRouter(cfg, compartido))

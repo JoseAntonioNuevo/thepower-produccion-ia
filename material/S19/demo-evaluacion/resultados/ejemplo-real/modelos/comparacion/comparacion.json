@@ -1,0 +1,108 @@
+{
+  "variable": "gen_modelo",
+  "valor_A": "google/gemini-4-hydrogen",
+  "valor_B": "openai/gpt-6.2-sol",
+  "run_A": "modelos-test-MH",
+  "run_B": "modelos-test-MS",
+  "conjunto": "test",
+  "n_casos": 20,
+  "perfil": "real",
+  "aviso": null,
+  "filas": [
+    {
+      "metrica": "precision@5",
+      "A": 0.2429,
+      "B": 0.2429,
+      "delta": 0.0
+    },
+    {
+      "metrica": "recall@5",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "rechazos correctos (tasa)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "abstenciones incorrectas (tasa)",
+      "A": 0.0714,
+      "B": 0.0,
+      "delta": -0.0714
+    },
+    {
+      "metrica": "aciertos por criterio (tasa)",
+      "A": 0.9286,
+      "B": 0.8571,
+      "delta": -0.0715
+    },
+    {
+      "metrica": "faithfulness (media)",
+      "A": 0.9231,
+      "B": 1.0,
+      "delta": 0.0769
+    },
+    {
+      "metrica": "faithfulness (cobertura)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "answer_relevancy (media)",
+      "A": 0.8577,
+      "B": 0.8822,
+      "delta": 0.0245
+    },
+    {
+      "metrica": "answer_relevancy (cobertura)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "latencia mediana (ms)",
+      "A": 2540.4,
+      "B": 1607.1,
+      "delta": -933.3
+    },
+    {
+      "metrica": "latencia p95 (ms)",
+      "A": 3645.7,
+      "B": 1875.8,
+      "delta": -1769.9
+    },
+    {
+      "metrica": "coste por consulta (USD)",
+      "A": 0.00213228,
+      "B": 0.00100408,
+      "delta": -0.0011
+    },
+    {
+      "metrica": "coste del sistema (USD)",
+      "A": 0.042636,
+      "B": 0.020072,
+      "delta": -0.0226
+    },
+    {
+      "metrica": "coste del evaluador (USD)",
+      "A": 0.4571133,
+      "B": 0.49658694,
+      "delta": 0.0395
+    }
+  ],
+  "casos_que_cambian": [
+    {
+      "caso_id": "T14",
+      "A": true,
+      "B": false
+    }
+  ],
+  "no_evaluables": {
+    "A": [],
+    "B": []
+  }
+}

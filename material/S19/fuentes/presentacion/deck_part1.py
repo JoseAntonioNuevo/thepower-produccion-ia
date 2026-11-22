@@ -259,7 +259,7 @@ def s06_pipeline(deck):
     notes(sl, """18:44–18:47. Recorrer el diagrama de izquierda a derecha. Ingesta: documentos en bruto, fragmentación, embeddings y PostgreSQL con pgvector; el índice se reconstruye desde vacío y cada configuración tiene el suyo. Consulta: se piden 12 fragmentos, se agrupan en un máximo de 5 documentos distintos, se decide si hay evidencia suficiente y, solo entonces, se genera con 4 fragmentos y citas. Señalar las cuatro medidas y en qué punto se toma cada una. La tabla inferior es la razón de separar: el mismo síntoma tiene causas distintas.
 QUÉ ABRIR: nada; a continuación viene el primer momento en vivo.
 PREGUNTA: si recall@5 es 1,00 y la respuesta es mala, ¿qué pieza reviso?
-Fuentes: enunciado de S19 («medir recuperación y generación por separado»); código de demo-evaluacion/rag/consulta.py.""")
+Fuentes: enunciado de S19 («medir recuperación y generación por separado»); código de demo-evaluacion/rag/grafo.py (la consulta como grafo de LangGraph).""")
     return sl
 
 
@@ -283,7 +283,7 @@ def s07_vivo1(deck):
          "no dice nada de la calidad de un modelo real.", size=9.5, color=MUTED)
     band_s(sl, "El índice se identifica por corpus + fragmentación + modelo de embeddings: si cambia uno, es otro índice.")
     footer_s(sl)
-    notes(sl, """18:47–18:51. EN VIVO 1. Ejecutar los cuatro comandos en orden (docs/comandos.md, «Vivo 1»). 1) preflight: leer la línea de datos y la de las variantes A y B (41 y 13 fragmentos). 2) ingestar --config A y repetirlo: mismo identificador de índice y mismas 41 filas. 3) preguntar por TLS: enseñar documentos recuperados, mejor similitud, umbral y la cita entre corchetes. 4) preguntar por la cafetería: rechazo por evidencia insuficiente, sin llamar al generador. Decir en voz alta que es el perfil doble: no mide ningún modelo.
+    notes(sl, """18:47–18:51. EN VIVO 1. Ejecutar los cuatro comandos en orden (docs/comandos.md, «Vivo 1»). 1) preflight: leer la línea de datos y la de las variantes A y B (41 y 13 fragmentos). 2) ingestar --config A y repetirlo: mismo identificador de índice y mismas 41 filas. 3) preguntar por TLS: enseñar documentos recuperados, mejor similitud, umbral y la cita entre corchetes. 4) preguntar por la cafetería: rechazo por evidencia insuficiente, sin llamar al generador. Decir en voz alta que es el perfil doble: no mide ningún modelo. 5) Opcional: python s19.py chat y escribir 1 y 6; el panel enseña la rama del grafo que toma cada pregunta (generar o rechazo previo). Con modelos reales, guion en material/S19/guion-directo-modelos.md.
 QUÉ ABRIR: terminal; después datos/test.jsonl para ver un caso respondible y uno sin respuesta.
 PREGUNTA: ¿qué pasaría si indexara con un modelo de embeddings y consultara con otro?
 Fuentes: salida real de los comandos con el perfil doble (17/11/2026); demo-evaluacion/README.md, paso 1.""")
@@ -609,7 +609,7 @@ def s02b_tests_y_evaluacion(deck):
     takeaway(sl, "Cada red atrapa fallos distintos: ninguna sustituye a las otras dos.", label="Idea guía")
     footer(sl, block=1)
     notes(sl, """18:35–18:37. Situar la evaluación en el ciclo que vieron en S18. Arriba, el recorrido de un cambio: desarrollo, pull request, antes de publicar y producción. Cada carril marca dónde actúa cada red.
-Tests: comprueban el código determinista que rodea al modelo (formato de salida, fuentes citadas, manejo de errores, ingesta sin duplicados) con dobles del modelo; son baratos y se ejecutan en cada PR (en la demo, 73 tests con pytest).
+Tests: comprueban el código determinista que rodea al modelo (formato de salida, fuentes citadas, manejo de errores, ingesta sin duplicados) con dobles del modelo; son baratos y se ejecutan en cada PR (en la demo, 103 tests con pytest).
 Evaluación offline: mide la calidad sobre un conjunto fijo antes de publicar, con el modelo y el juez reales; un umbral elegido con validación decide si el cambio sale (control de regresión, bloque 4).
 Evaluación online: en producción, sobre trazas reales; Langfuse la describe como puntuar trazas en vivo y convertir ejemplos interesantes en datasets para los experimentos offline. La flecha de vuelta es esa idea.
 La pirámide de tests de la diapositiva 22 detalla la primera red; el bloque 5 trata la tercera.

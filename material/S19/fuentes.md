@@ -27,16 +27,16 @@ instalada**, que es la fuente que manda para este paquete.
 | Tokens y coste en Langfuse | <https://langfuse.com/docs/observability/features/token-and-cost-tracking> | 16/11/2026 | `usage_details`, definiciones de modelo y precios |
 | Puntuaciones en Langfuse por SDK | <https://langfuse.com/docs/evaluation/evaluation-methods/scores-via-sdk> | 16/11/2026 | `create_score(trace_id, name, value, data_type)` |
 | SDK de Langfuse (Python) | <https://langfuse.com/docs/observability/sdk/overview> | 16/11/2026; firmas probadas el 17/11 con `langfuse==5.2.0` sin red | `start_as_current_observation`, `propagate_attributes`, `create_trace_id` |
-| Precios de la API de Gemini | <https://ai.google.dev/gemini-api/docs/pricing> | 16/11/2026 | `tarifas.json` |
-| Modelos de Gemini | <https://ai.google.dev/gemini-api/docs/models> | 16/11/2026 | Identificadores `gemini-3.5-flash-lite`, `gemini-3.8-flash` |
-| Embeddings de Gemini | <https://ai.google.dev/gemini-api/docs/embeddings> | 16/11/2026 | `gemini-embedding-2`, `gemini-embedding-001`, dimensión 768 |
-| Gemini compatible con OpenAI | <https://ai.google.dev/gemini-api/docs/openai> | 16/11/2026 | Endpoint `…/v1beta/openai/` de la ruta `openai_compat` |
-| pgvector | <https://github.com/pgvector/pgvector> | No releída el 17/11; operador `<=>` y HNSW comprobados ejecutando contra `pgvector/pgvector:pg17` | Distancia coseno, `vector(768)` |
+| Catálogo de modelos de OpenRouter | <https://openrouter.ai/api/v1/models> y <https://openrouter.ai/api/v1/embeddings/models> (API pública) | 21/11/2026 | `tarifas.json` (`python s19.py catalogo`): precios, tipo y parámetros admitidos |
+| Embeddings en OpenRouter | <https://openrouter.ai/docs/api/reference/embeddings> | 21/11/2026 | Endpoint `/embeddings` compatible con OpenAI; 40 modelos |
+| Uso y coste en OpenRouter | <https://openrouter.ai/docs/guides/guides/usage-accounting> | 21/11/2026 | `usage.cost` en cada respuesta, sin parámetros adicionales |
+| Precios de la API de Gemini (histórico) | <https://ai.google.dev/gemini-api/docs/pricing> | 16/11 y 21/11/2026 | Perfil real anterior, directo a Gemini; sustituido por OpenRouter el 21/11 |
+| pgvector | <https://github.com/pgvector/pgvector> | No releída el 17/11; operador `<=>` comprobado ejecutando contra `pgvector/pgvector:pg17` (0.8.7) | Distancia coseno; columna `vector` sin dimensión fija desde el 21/11 |
 | pytest · marcadores | <https://docs.pytest.org/en/stable/how-to/mark.html> | No releída el 17/11; `-m 'not llm and not db'` comprobado ejecutando `pytest==9.1.1` | `@pytest.mark.llm`, `addopts` |
 | uv · proyectos y bloqueo | <https://docs.astral.sh/uv/concepts/projects/> | No releída el 17/11; `uv lock --check` ejecutado en los dos proyectos | Dos entornos bloqueados |
 
-Los precios cambian. `tarifas.json` guarda fuente y fecha; vuelve a comprobarlos antes de
-ejecutar el perfil real.
+Los precios cambian. `tarifas.json` guarda fuente y fecha; `python s19.py catalogo` los vuelve
+a leer de OpenRouter antes de ejecutar el perfil real o al cambiar de modelo.
 
 ## Material propio reutilizado
 

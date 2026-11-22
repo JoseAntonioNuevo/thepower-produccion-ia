@@ -3,6 +3,7 @@
     python s19.py preflight                      comprueba configuración y datos (no llama a nada)
     python s19.py ingestar --config A            reconstruye el índice desde documentos en bruto
     python s19.py preguntar "..." --config A     una consulta: documentos, fuentes o rechazo
+    python s19.py chat --config A                chat en la terminal: el grafo paso a paso (OpenTUI)
     python s19.py calibrar --config A            elige el umbral de evidencia con VALIDACIÓN
     python s19.py lote --conjunto test --config A --salida resultados/mi-test-A
     python s19.py informe resultados/mi-test-A   métricas con numerador, denominador y cobertura
@@ -12,9 +13,12 @@
     python s19.py revision resultados/mi-test-A  plantilla de revisión manual
     python s19.py degradar resultados/mi-test-A --modo recuperacion --salida resultados/mi-test-A-mal
     python s19.py estimar                        llamadas y coste previstos del perfil real
+    python s19.py catalogo                       precios y parámetros de los modelos (OpenRouter, gratis)
 
-Perfil por defecto: `doble` (sin modelos, sin coste, rotulado). Con S19_PERFIL=real los
-comandos que consumen la API exigen `--execute`.
+Perfil por defecto: `doble` (sin modelos, sin coste, rotulado). Con S19_PERFIL=real todo pasa
+por OpenRouter, los modelos se eligen en .env y los comandos que consumen la API exigen `--execute`.
+Todos los comandos aceptan `--env .env.otro` para usar otro archivo de entorno sin copiarlo.
+La consulta es un grafo de LangGraph (`rag/grafo.py`): recuperar → generar → comprobar, o rechazo previo.
 """
 
 from __future__ import annotations
@@ -23,14 +27,26 @@ import argparse
 import csv
 import datetime as dt
 import json
+import os
 import sys
 from pathlib import Path
 
 from evaluacion import comparar as cmp
 from evaluacion import conjuntos, degradar, informe, regresion
 from evaluacion.lote import AVISO_DOBLE, ejecutar_lote
+from rag import catalogo
 from rag.almacen import AlmacenPg, ErrorIndice
-from rag.config import RAIZ, ErrorConfiguracion, aplicar_variante, cargar_calibracion, cargar_config
+from rag.config import (
+    RAIZ,
+    VARIABLE_ARCHIVO_ENV,
+    ErrorConfiguracion,
+    aplicar_variante,
+    calibracion_vale,
+    cargar_calibracion,
+    cargar_config,
+    estado_calibracion,
+    modelos_evaluador,
+)
 from rag.consulta import recuperar, responder
 from rag.corpus import preparar
 from rag.costes import tarifas
@@ -77,6 +93,9 @@ def cmd_preflight(args) -> int:
             f"Variante {variante}: chunk_size={c.chunk_size} → {len(docs)} documentos, "
             f"{len(frags)} fragmentos, índice {indice_esperado(c)}"
         )
+    print("Umbral de evidencia:", estado_calibracion(cfg))
+    if cfg.perfil == "real" and not _preflight_real(cfg):
+        return 1
     try:
         almacen = AlmacenPg(cfg.database_url)
         almacen.preparar_esquema()
@@ -93,6 +112,81 @@ def cmd_preflight(args) -> int:
     print("Langfuse:", "activado" if Trazador.desde_entorno().activo else "apagado (S19_LANGFUSE=off)")
     print("Preflight correcto: no se ha llamado a ningún modelo.")
     return 0
+
+
+def _modelos_en_uso(cfg) -> dict[str, str]:
+    """Todos los modelos que el perfil real puede llamar, con su papel."""
+    juez, juez_emb = modelos_evaluador()
+    modelos = {
+        "generación": cfg.gen_modelo,
+        "embeddings": cfg.embedding_modelo,
+        "juez": juez,
+        "embeddings del juez": juez_emb,
+    }
+    variantes = _leer(DATOS / "configuraciones.json")
+    for grupo in (variantes["variantes"], variantes.get("alternativa_solo_prompt", {}).get("variantes", {})):
+        for nombre, cambios in grupo.items():
+            if "gen_modelo" in cambios:
+                modelos[f"generación (variante {nombre})"] = cambios["gen_modelo"]
+    return modelos
+
+
+def _preflight_real(cfg) -> bool:
+    """Comprueba sin gastar: clave presente, modelos en el catálogo y parámetros admitidos."""
+    from rag.openrouter import url_base
+
+    print("Proveedor: OpenRouter ·", url_base())
+    clave = "presente" if os.environ.get("OPENROUTER_API_KEY", "").strip() else "FALTA (OPENROUTER_API_KEY)"
+    print("Clave de OpenRouter:", clave)
+    precios = tarifas()["modelos"]
+    correcto = clave == "presente"
+    for papel, modelo in _modelos_en_uso(cfg).items():
+        ficha = precios.get(modelo)
+        if ficha is None:
+            print(f"  ✗ {papel}: {modelo} no está en tarifas.json → python s19.py catalogo")
+            correcto = False
+            continue
+        enviados = []
+        if papel.startswith("generación"):
+            enviados = ["max_tokens"] + (["temperature"] if cfg.gen_temperatura is not None else [])
+        elif papel == "juez":
+            enviados = ["response_format"]  # Ragas pide la salida del juez en JSON
+        ignorados = catalogo.avisos_parametros(ficha, enviados)
+        nota = f" · OpenRouter dice que no admite {ignorados}" if ignorados else ""
+        print(f"  ✓ {papel}: {modelo} ({ficha['tipo']}){nota}")
+    print(f"Embeddings: {cfg.embedding_dim} dimensiones · pedir dimensión: {cfg.embedding_enviar_dim}")
+    if not correcto:
+        print("Preflight del perfil real: FALLA (no se ha llamado a ningún modelo).")
+    return correcto
+
+
+def cmd_catalogo(args) -> int:
+    """Lee precios y parámetros de OpenRouter (API pública, sin clave ni coste) y los guarda."""
+    from rag.openrouter import url_base
+
+    cargar_config()  # carga .env
+    perfil_real = aplicar_variante(_config_real(), "A")
+    modelos = sorted(set(_modelos_en_uso(perfil_real).values()) | set(args.modelo or []))
+    datos = catalogo.actualizar(modelos, catalogo.descargar(url_base()))
+    print(f"tarifas.json actualizado ({datos['consultado']}) con {len(modelos)} modelos de OpenRouter:")
+    for m in modelos:
+        f = datos["modelos"][m]
+        salida = f" · salida {f['salida']} USD/M" if f["tipo"] == "chat" else ""
+        print(f"  {m:<42} {f['tipo']:<10} entrada {f['entrada']} USD/M{salida}")
+    return 0
+
+
+def _config_real():
+    """La configuración del perfil real aunque .env diga doble: el catálogo y la estimación son del real."""
+    anterior = os.environ.get("S19_PERFIL")
+    os.environ["S19_PERFIL"] = "real"
+    try:
+        return cargar_config()
+    finally:
+        if anterior is None:
+            os.environ.pop("S19_PERFIL", None)
+        else:
+            os.environ["S19_PERFIL"] = anterior
 
 
 def cmd_ingestar(args) -> int:
@@ -126,6 +220,15 @@ def cmd_preguntar(args) -> int:
     print("Latencia (ms):", r.latencia_ms, "· tokens:", r.tokens, "· coste estimado:", r.coste_usd)
     if r.model_version:
         print("Versión de modelo servida:", r.model_version)
+    return 0
+
+
+def cmd_chat(args) -> int:
+    """Chat en la terminal (OpenTUI): el mismo grafo que el lote, paso a paso y con trazas."""
+    from ui.motor import MotorChat  # import local: los demás comandos no necesitan OpenTUI
+    from ui.rag_tui import abrir_chat
+
+    abrir_chat(MotorChat(args.execute, args.config))
     return 0
 
 
@@ -172,10 +275,18 @@ def cmd_calibrar(args) -> int:
             f"Sin cambios en {_ruta_visible(ruta)}: ya existe calibración fijada para el perfil "
             f"{cfg.perfil}. Repite con --fijar para sobrescribir."
         )
+        if not calibracion_vale(cfg, actual):
+            print(
+                f"⚠  La calibración fijada es de {actual.get('embedding_modelo')} y ahora se usa "
+                f"{cfg.embedding_modelo} (o cambió su dimensión o plantilla): ese umbral NO vale. "
+                "Recalibra con --fijar antes de ejecutar lotes."
+            )
         return 0
     todo[cfg.perfil] = {
         "umbral_evidencia": umbral,
         "embedding_modelo": cfg.embedding_modelo,
+        "embedding_dim": cfg.embedding_dim,
+        **{k: v for k, v in cfg.publica().items() if k in ("plantilla_documento", "plantilla_consulta")},
         "indice_id": indice_id,
         "config_id": cfg.config_id,
         "conjunto": "validacion",
@@ -365,46 +476,54 @@ def cmd_degradar(args) -> int:
 
 
 def cmd_estimar(args) -> int:
-    """Llamadas previstas y coste estimado del perfil real. No llama a ninguna API."""
+    """Llamadas previstas y coste estimado del perfil real con los modelos de .env. No llama a nada."""
     s, t = _leer(DATOS / "supuestos-coste.json"), tarifas()
-    base = cargar_config()
+    base = _config_real()
+    juez, juez_emb = modelos_evaluador()
+    precios = t["modelos"]
+    faltan = [m for m in (base.gen_modelo, base.embedding_modelo, juez, juez_emb) if m not in precios]
+    if faltan:
+        raise ErrorConfiguracion(f"sin precio en tarifas.json para {faltan}: ejecuta `python s19.py catalogo`")
     frags = {v: len(preparar(CORPUS, aplicar_variante(base, v).chunk_size, 0)[1]) for v in ("A", "B")}
     n_val, n_test = len(conjuntos.cargar("validacion")), len(conjuntos.cargar("test"))
     # Recorrido completo: 2 índices, calibración, validación A y B, test A y B.
     emb = frags["A"] + frags["B"] + n_val * 3 + n_test * 2
     gen = n_val * 2 + n_test * 2  # como máximo una generación por caso
     juez_casos = n_val * 2 + n_test * 2  # como máximo: todos los casos respondidos
-    juez_llm = juez_casos * s["evaluador"]["llamadas_llm_por_caso"]
-    juez_emb = juez_casos * s["evaluador"]["peticiones_embeddings_por_caso"]
-    p = t["modelos"]
     g, e = s["generacion"], s["evaluador"]
-    coste_gen = gen * (g["tokens_entrada"] * p[g["modelo"]]["entrada"] + g["tokens_salida"] * p[g["modelo"]]["salida"]) / 1e6
-    coste_emb = emb * s["embeddings"]["tokens"] * p[s["embeddings"]["modelo"]]["entrada"] / 1e6
+    juez_llm = juez_casos * e["llamadas_llm_por_caso"]
+    juez_emb_n = juez_casos * e["peticiones_embeddings_por_caso"]
+    pg, pe, pj, pje = precios[base.gen_modelo], precios[base.embedding_modelo], precios[juez], precios[juez_emb]
+    max_gen = base.gen_max_tokens or g["max_tokens"]
+    coste_gen = gen * (g["tokens_entrada"] * pg["entrada"] + g["tokens_salida"] * pg["salida"]) / 1e6
+    techo_gen = gen * (g["tokens_entrada"] * pg["entrada"] + max_gen * pg["salida"]) / 1e6
+    coste_emb = emb * s["embeddings"]["tokens"] * pe["entrada"] / 1e6
     coste_juez = (
-        juez_casos
-        * (e["tokens_entrada_por_caso"] * p[e["modelo"]]["entrada"] + e["tokens_salida_por_caso"] * p[e["modelo"]]["salida"])
-        / 1e6
+        juez_casos * (e["tokens_entrada_por_caso"] * pj["entrada"] + e["tokens_salida_por_caso"] * pj["salida"]) / 1e6
     )
     techo_juez = (
         juez_llm
-        * (
-            e["tokens_entrada_por_caso"] / e["llamadas_llm_por_caso"] * p[e["modelo"]]["entrada"]
-            + e["max_tokens"] * p[e["modelo"]]["salida"]
-        )
+        * (e["tokens_entrada_por_caso"] / e["llamadas_llm_por_caso"] * pj["entrada"] + e["max_tokens"] * pj["salida"])
         / 1e6
     )
-    techo_gen = gen * (g["tokens_entrada"] * p[g["modelo"]]["entrada"] + g["max_tokens"] * p[g["modelo"]]["salida"]) / 1e6
-    print(f"Tarifas: {t['fuente']} · consultadas el {t['consultado']} · {t['nivel']}")
+    coste_juez_emb = juez_casos * e["tokens_embeddings_por_caso"] * pje["entrada"] / 1e6
+    print(f"Tarifas: OpenRouter · consultadas el {t['consultado']} (python s19.py catalogo)")
+    print(
+        f"Modelos: generación {base.gen_modelo} · embeddings {base.embedding_modelo} · juez {juez} · "
+        f"embeddings del juez {juez_emb}"
+    )
     print(f"Fragmentos: A={frags['A']}, B={frags['B']} · validación={n_val} · test={n_test}\n")
     print(f"{'Partida':<34}{'Llamadas (máx.)':>16}{'Estimación USD':>16}{'Cota superior USD':>19}")
     print(f"{'Embeddings del RAG':<34}{emb:>16}{coste_emb:>16.4f}{coste_emb:>19.4f}")
     print(f"{'Generación del RAG':<34}{gen:>16}{coste_gen:>16.4f}{techo_gen:>19.4f}")
     print(f"{'Evaluador · LLM (Ragas)':<34}{juez_llm:>16}{coste_juez:>16.4f}{techo_juez:>19.4f}")
-    print(f"{'Evaluador · embeddings':<34}{juez_emb:>16}{'≈ 0,0001':>16}{'≈ 0,0001':>19}")
-    total, techo = coste_emb + coste_gen + coste_juez, coste_emb + techo_gen + techo_juez
-    print(f"{'TOTAL':<34}{emb + gen + juez_llm + juez_emb:>16}{total:>16.4f}{techo:>19.4f}")
+    print(f"{'Evaluador · embeddings':<34}{juez_emb_n:>16}{coste_juez_emb:>16.4f}{coste_juez_emb:>19.4f}")
+    total = coste_emb + coste_gen + coste_juez + coste_juez_emb
+    techo = coste_emb + techo_gen + techo_juez + coste_juez_emb
+    print(f"{'TOTAL':<34}{emb + gen + juez_llm + juez_emb_n:>16}{total:>16.4f}{techo:>19.4f}")
     print("\nLa estimación usa los supuestos de datos/supuestos-coste.json (tamaños, no mediciones de")
     print("tokens). La cota superior supone que cada respuesta agota su máximo de tokens de salida.")
+    print("El coste real de cada llamada lo devuelve OpenRouter y queda en respuestas.jsonl.")
     return 0
 
 
@@ -434,6 +553,7 @@ def main(argv: list[str] | None = None) -> int:
     def nuevo(nombre, funcion, execute=False, config=True):
         sp = sub.add_parser(nombre)
         sp.set_defaults(funcion=funcion)
+        sp.add_argument("--env", help="archivo de entorno en lugar de .env (p. ej. .env.sol-opus)")
         if config:
             sp.add_argument("--config", default="A", help="variante de datos/configuraciones.json")
         if execute:
@@ -443,6 +563,7 @@ def main(argv: list[str] | None = None) -> int:
     nuevo("preflight", cmd_preflight)
     nuevo("ingestar", cmd_ingestar, execute=True)
     nuevo("preguntar", cmd_preguntar, execute=True).add_argument("pregunta")
+    nuevo("chat", cmd_chat, execute=True)
     sp = nuevo("calibrar", cmd_calibrar, execute=True)
     sp.add_argument("--fijar", action="store_true", help="sobrescribe la calibración fijada de este perfil")
     sp = nuevo("lote", cmd_lote, execute=True)
@@ -467,9 +588,15 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--modo", choices=degradar.MODOS, required=True)
     sp.add_argument("--salida", required=True)
     nuevo("estimar", cmd_estimar, config=False)
+    nuevo("catalogo", cmd_catalogo, config=False).add_argument(
+        "--modelo", action="append", help="modelo adicional de OpenRouter (se puede repetir)"
+    )
     nuevo("publicar-evaluador", cmd_publicar_evaluador, config=False).add_argument("carpeta")
 
     args = p.parse_args(argv)
+    if args.env:
+        # Antes de leer ninguna configuración: todos los comandos usarán este archivo.
+        os.environ[VARIABLE_ARCHIVO_ENV] = str(Path(args.env).expanduser().resolve())
     try:
         return args.funcion(args)
     except (

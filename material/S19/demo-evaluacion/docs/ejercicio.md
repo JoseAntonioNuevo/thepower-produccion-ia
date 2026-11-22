@@ -10,7 +10,10 @@ con el entorno preparado.
 Puedes hacerla de dos formas:
 
 - **Sin gastar:** todo con el perfil `doble`. Practicas el método completo; tus cifras no miden un modelo.
-- **Con modelos:** perfil `real`. Antes ejecuta `uv run python s19.py estimar` y revisa el gasto previsto.
+- **Con modelos:** perfil `real`, siempre a través de OpenRouter con una sola clave
+  (`OPENROUTER_API_KEY`). Elige en `.env` los modelos de generación, embeddings y juez
+  (los de OpenAI, Anthropic, Google…). Antes ejecuta `uv run python s19.py catalogo` y
+  `uv run python s19.py estimar`, y revisa el gasto previsto.
 
 ## Paso a paso
 
@@ -31,8 +34,9 @@ Usa este repositorio como punto de partida. En cada paso, **cambia algo tuyo**.
 | 11 | Añade **dos tests tuyos** en `tests/` con respuestas simuladas | `uv run pytest` | pytest con dobles |
 | 12 | Opcional: activa Langfuse y publica el consumo del evaluador aparte | Dos trazas por caso: `consulta-rag` y `evaluador-ragas` | Observabilidad |
 
-**Ampliación opcional.** Añade un caso a `tests/test_enrutado.py` para el bucle de
-`ampliacion/crag.py`: por ejemplo, que nunca haga más de tres recuperaciones.
+**Ampliación opcional.** Añade un caso a `tests/test_enrutado.py` para el agente de
+`ampliacion/crag.py` (un grafo de LangGraph): por ejemplo, que nunca haga más de tres
+recuperaciones o que su trayectoria (`Trayectoria.ruta`) sea la esperada.
 
 ## Qué entregas
 

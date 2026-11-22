@@ -10,10 +10,10 @@ leídos en Gmail el 16/11/2026 por la sesión anterior.
 |---|---|---|---|
 | T0b | Punto de partida: qué es evaluar, tests frente a evaluación, casos de uso (añadido a petición de José, 20/11) | 3, 4, 5 | Guía de evaluación de Anthropic, Langfuse y Ragas leídas el 20/11/2026 |
 | T0 | Cerrar el ciclo de calidad: medir antes y después de cada cambio | 6, 30, 32 | Recorrido completo del README |
-| T1 | Evaluación de modelos y métricas específicas | 7, 8, 9, 11, 12, 13, 15, 16, 17 | `evaluacion/metricas.py`, `evaluador/` |
-| T2 | Análisis avanzado y métricas de producción | 27, 28, 30 | Latencia, tokens y coste por caso en `respuestas.jsonl`; `comparar` |
-| T3 | Testing automatizado de agentes y pipelines RAG | 22, 23, 24, 25, 26 | `tests/` (73), `ampliacion/crag.py`, `evaluacion/regresion.py` |
-| T4 | Integración de la evaluación con la observabilidad | 29, 30 | `rag/observabilidad.py`, `tests/test_observabilidad.py` |
+| T1 | Evaluación de modelos y métricas específicas | 7, 8, 9, 11, 12, 13, 15, 16, 17 | `evaluacion/metricas.py`, `evaluador/`; evaluación de modelos real `MH` frente a `MS` con el mismo juez (`resultados/ejemplo-real/modelos/`) |
+| T2 | Análisis avanzado y métricas de producción | 27, 28, 30 | Bloque «Producción» del informe (p50/p95, tasas de error y rechazo, coste por consulta y por 1.000, peso del juez); `comparar`; `tests/test_produccion.py` |
+| T3 | Testing automatizado de agentes y pipelines RAG | 22, 23, 24, 25, 26 | `tests/` (131); consulta como grafo LangGraph (`rag/grafo.py`, `tests/test_grafo.py`); agente CRAG en LangGraph con trayectoria y `recursion_limit` (`ampliacion/crag.py`, `tests/test_enrutado.py`); `evaluacion/regresion.py` |
+| T4 | Integración de la evaluación con la observabilidad | 29, 30 | `rag/observabilidad.py`, `tests/test_observabilidad.py`; trazas también desde el chat (`ui/motor.py`); envío real pendiente de claves |
 | T5 | Práctica: RAG completo desde cero con evaluación y testing | 31 | `docs/ejercicio.md`, [enunciado.md](enunciado.md) |
 
 Conceptos pedidos para la presentación: métricas de modelos y de sistemas (7); evaluación de
@@ -29,7 +29,7 @@ integración con observabilidad (29).
 |---|---|---|---|---|
 | E1 | Al menos ocho documentos ficticios | 6, 9 | `corpus/` (10) | `test_el_corpus_tiene_al_menos_ocho_documentos_ficticios` |
 | E2 | Ingesta, fragmentación, embeddings, búsqueda vectorial | 9, 10 | `rag/corpus.py`, `ingesta.py`, `almacen.py` | `ingestar` A y B ejecutado en pgvector |
-| E3 | Generación con fuentes y rechazo por falta de evidencia | 9, 13 | `rag/consulta.py` | `tests/test_consulta.py` |
+| E3 | Generación con fuentes y rechazo por falta de evidencia | 9, 13 | `rag/grafo.py` (nodos), `rag/consulta.py` (piezas) | `tests/test_consulta.py`, `tests/test_grafo.py` |
 | E4 | Python y PostgreSQL con pgvector | 9, 10 | `compose.yaml`, `esquema.sql` | `pytest -m db` (1 pasa) |
 | E5 | Modelos por variables de entorno y versiones registradas | 18 | `.env.example`, `rag/config.py`, `manifiesto.json` | Manifiestos de `resultados/ejemplo-doble` |
 | E6 | Reconstruir desde documentos en bruto e índice vacío | 10 | `reconstruir_indice` | `test_reconstruir_dos_veces_no_duplica` |
@@ -51,18 +51,18 @@ integración con observabilidad (29).
 | E22 | Langfuse: respuesta, fuentes, métricas, latencia, tokens y coste; consumo del evaluador separado | 29 | `rag/observabilidad.py`, `publicar-evaluador` | `tests/test_observabilidad.py` (sin red) |
 | E23 | Si falta el coste, comprobar el modelo y definir su precio | 29 | README de la demo, `tarifas.json` | `test_modelo_sin_tarifa_deja_el_coste_sin_dato` |
 | E24 | No reajustar las reglas después de ver el test | 8, 25 | Umbrales derivados solo de validación | `derivar_umbrales` rechaza el test |
-| E25 | pytest: ingesta sin duplicados, formato, fuentes y errores con respuestas simuladas | 22, 23 | `tests/` | 73 pasan |
-| E26 | Evaluaciones reales con `@pytest.mark.llm`, excluidas por defecto | 23 | `pyproject.toml`, `tests/test_integracion.py` | «2 deselected» |
+| E25 | pytest: ingesta sin duplicados, formato, fuentes y errores con respuestas simuladas | 22, 23 | `tests/` | 131 pasan |
+| E26 | Evaluaciones reales con `@pytest.mark.llm`, excluidas por defecto | 23 | `pyproject.toml`, `tests/test_integracion.py` | «3 deselected» (2 `db` y 1 `llm`) |
 | E27 | Umbrales con margen usando validación | 25 | `umbrales`, `datos/umbrales.doble.json` | `test_los_umbrales_salen_de_validacion_con_margen` |
 | E28 | Demostrar con resultados degradados que el control falla | 26 | `degradar`, `regresion` | Código de salida 1 en tres modos; informe rechazado en el cuarto |
-| E29 | Ampliación opcional: tests de enrutado de un agente o CRAG | 24 | `ampliacion/crag.py` | `tests/test_enrutado.py` |
+| E29 | Ampliación opcional: tests de enrutado de un agente o CRAG | 24 | `ampliacion/crag.py` (grafo LangGraph) | `tests/test_enrutado.py` (decisiones, trayectoria, `recursion_limit`) |
 | E30 | Entrega: implementación, datos, entorno bloqueado, tests y tabla comparativa | 31 | `docs/ejercicio.md` | `resultados/ejemplo-doble/comparacion-A-B` |
 
 ## Lo que no queda acreditado
 
 | Requisito | Qué falta | Por qué |
 |---|---|---|
-| E15, E16 con juez real | Ejecutar Ragas contra la API | Sin autorización de gasto |
-| E2, E3 con modelos reales | Embeddings y generación con Gemini | Sin autorización de gasto |
+| E15, E16 con juez real | Ragas contra la API | **Hecho el 22/11/2026** (juez Claude Opus 5.5 vía OpenRouter; `resultados/ejemplo-real/`) |
+| E2, E3 con modelos reales | Embeddings y generación con modelos de OpenRouter elegidos en `.env` | **Hecho el 22/11/2026** (Gemini 4 Hydrogen y `openai/text-embedding-3-small`) |
 | E22 de extremo a extremo | Ver las trazas en un servidor Langfuse | No se usa Langfuse cloud en esta preparación |
 | E17 con resultados reales | Revisión humana de José | La del ejemplo la hizo el agente sobre el perfil doble |

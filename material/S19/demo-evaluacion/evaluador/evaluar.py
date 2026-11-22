@@ -11,7 +11,8 @@ Dos modos que nunca se sustituyen entre sí:
 - `doble`: las métricas son las clases REALES de `ragas.metrics.collections`, pero el juez y
   los embeddings son dobles locales deterministas. Comprueba el recorrido (formato, no
   evaluables, cobertura); sus cifras NO miden la calidad de ninguna respuesta.
-- `real`: juez y embeddings de pago. Exige `--execute` y GEMINI_API_KEY.
+- `real`: juez y embeddings de pago, SIEMPRE a través de OpenRouter. Exige `--execute` y
+  OPENROUTER_API_KEY. Los modelos se eligen en `../.env` (S19_EVAL_LLM_MODEL, S19_EVAL_EMBEDDING_MODEL).
 
 Lo que no se puede puntuar (rechazo, error, respuesta o contexto vacío, fallo del juez, NaN)
 se escribe como NO EVALUABLE con su motivo. Nunca se convierte en acierto ni en cero.
@@ -34,6 +35,8 @@ import time
 import unicodedata
 from pathlib import Path
 
+import httpx
+
 os.environ.setdefault("RAGAS_DO_NOT_TRACK", "true")  # sin telemetría de uso desde el aula
 
 from ragas.embeddings.base import BaseRagasEmbedding  # noqa: E402
@@ -42,7 +45,10 @@ from ragas.metrics.collections import AnswerRelevancy, Faithfulness  # noqa: E40
 
 RAIZ = Path(__file__).resolve().parent.parent
 METRICAS = ("faithfulness", "answer_relevancy")
-ENDPOINT_GEMINI_OPENAI = "https://generativelanguage.googleapis.com/v1beta/openai/"
+URL_OPENROUTER = "https://openrouter.ai/api/v1"
+# Valores por defecto del juez; deben coincidir con rag/config.py (lo comprueba un test del RAG).
+EVAL_LLM_MODELO_DEFECTO = "anthropic/claude-opus-5.5"
+EVAL_EMBEDDING_MODELO_DEFECTO = "openai/text-embedding-3-small"
 AVISO_DOBLE = (
     "JUEZ DOBLE: métricas de Ragas ejecutadas con un juez y unos embeddings locales "
     "deterministas. Comprueban el recorrido de la evaluación; NO miden ninguna respuesta."
@@ -62,7 +68,13 @@ intercambio = _cargar_intercambio()
 
 
 def cargar_env(ruta: Path | None = None) -> None:
-    """Lee `../.env` sin pisar el entorno y sin imprimir nada."""
+    """Lee `../.env` (o el archivo de S19_ENV_FILE / `--env`) sin pisar el entorno ni imprimir nada."""
+    elegido = os.environ.get("S19_ENV_FILE", "").strip()
+    if ruta is None and elegido:
+        ruta = Path(elegido).expanduser()
+        ruta = ruta if ruta.is_absolute() else RAIZ / ruta
+        if not ruta.exists():
+            raise SystemExit(f"No existe el archivo de entorno {ruta} (S19_ENV_FILE)")
     ruta = ruta or RAIZ / ".env"
     if not ruta.exists():
         return
@@ -143,16 +155,18 @@ class EmbeddingsDoble(BaseRagasEmbedding):
 
 # ------------------------------------------------------------------ juez real
 class ContadorUso:
-    """Cuenta llamadas y tokens leyendo el campo `usage` de cada respuesta HTTP del proveedor.
+    """Cuenta llamadas, tokens y coste leyendo el campo `usage` de cada respuesta de OpenRouter.
 
     Ragas no devuelve el consumo del juez. Sin este contador, el coste de evaluar quedaría
-    invisible o mezclado con el del RAG.
+    invisible o mezclado con el del RAG. OpenRouter añade `usage.cost`: lo que cobró.
     """
 
     def __init__(self):
         self.llamadas_llm = self.llamadas_embeddings = 0
         self.tokens_entrada = self.tokens_salida = 0
         self.sin_uso = 0  # respuestas del LLM que llegaron sin `usage`: el total deja de conocerse
+        self.coste_usd = 0.0
+        self.sin_coste = 0  # respuestas (LLM o embeddings) sin `usage.cost`
 
     async def al_responder(self, respuesta) -> None:
         await respuesta.aread()
@@ -160,6 +174,16 @@ class ContadorUso:
             uso = (respuesta.json() or {}).get("usage") or {}
         except (ValueError, AttributeError):
             uso = {}
+        # Con BYOK, `cost` es solo la comisión de OpenRouter y la inferencia la factura el
+        # proveedor: viene en cost_details.upstream_inference_cost y se suma (ver rag/openrouter.py).
+        coste = uso.get("cost")
+        if uso.get("is_byok") and isinstance(coste, (int, float)):
+            upstream = (uso.get("cost_details") or {}).get("upstream_inference_cost")
+            coste = coste + upstream if isinstance(upstream, (int, float)) else None
+        if isinstance(coste, (int, float)) and not isinstance(coste, bool):
+            self.coste_usd += float(coste)
+        else:
+            self.sin_coste += 1
         if "/embeddings" in str(respuesta.request.url):
             self.llamadas_embeddings += 1
             return
@@ -180,73 +204,128 @@ class ContadorUso:
             "tokens_entrada": self.tokens_entrada,
             "tokens_salida": self.tokens_salida,
             "sin_uso": self.sin_uso,
+            "coste_usd": self.coste_usd,
+            "sin_coste": self.sin_coste,
         }
 
 
-def crear_real(ruta: str, modelo: str, modelo_emb: str, max_tokens: int, clave: str, transporte=None):
-    """Construye juez y embeddings reales. `transporte` solo se usa en tests (HTTP simulado).
+def _lista(texto: str) -> list[str]:
+    return [p.strip() for p in (texto or "").split(",") if p.strip()]
 
-    Hallazgo con ragas==0.4.3 (ver README): `llm_factory(provider="google", client=genai.Client())`
-    devuelve un cliente SÍNCRONO y `ascore` falla con TypeError. Por eso las dos rutas de aquí
-    son asíncronas.
+
+def _json(nombre: str) -> dict:
+    texto = os.environ.get(nombre, "").strip()
+    if not texto:
+        return {}
+    valor = json.loads(texto)
+    if not isinstance(valor, dict):
+        raise SystemExit(f"{nombre} debe ser un objeto JSON")
+    return valor
+
+
+def ajustes_desde_entorno() -> dict:
+    """Todo lo que cambia el comportamiento del juez real, leído de ../.env."""
+    return {
+        "llm_proveedores": _lista(os.environ.get("S19_EVAL_LLM_PROVEEDORES", "")),
+        "embedding_proveedores": _lista(os.environ.get("S19_EVAL_EMBEDDING_PROVEEDORES", "")),
+        "llm_extra": _json("S19_EVAL_LLM_EXTRA"),
+        "quitar_parametros": _lista(os.environ.get("S19_EVAL_QUITAR_PARAMETROS", "")),
+    }
+
+
+def _con_proveedores(cuerpo: dict, proveedores: list[str]) -> dict:
+    if proveedores:
+        cuerpo["provider"] = {**cuerpo.get("provider", {}), "order": proveedores, "allow_fallbacks": False}
+    return cuerpo
+
+
+class TransporteOpenRouter(httpx.AsyncBaseTransport):
+    """Ajusta cada petición antes de enviarla a OpenRouter.
+
+    Ragas construye las peticiones por dentro y no deja añadir campos propios de OpenRouter.
+    Este transporte añade el orden de proveedores y los campos extra de .env, y quita los
+    parámetros que el modelo no admita (Ragas siempre envía temperature y top_p).
     """
+
+    def __init__(self, interno: httpx.AsyncBaseTransport, ajustes: dict):
+        self._interno, self._ajustes = interno, ajustes
+
+    async def handle_async_request(self, peticion: httpx.Request) -> httpx.Response:
+        ruta = peticion.url.path
+        if peticion.method == "POST" and (ruta.endswith("/chat/completions") or ruta.endswith("/embeddings")):
+            cuerpo = json.loads(peticion.content or b"{}")
+            if ruta.endswith("/embeddings"):
+                cuerpo = _con_proveedores(cuerpo, self._ajustes.get("embedding_proveedores") or [])
+            else:
+                cuerpo = _con_proveedores(
+                    {**cuerpo, **self._ajustes.get("llm_extra", {})}, self._ajustes.get("llm_proveedores") or []
+                )
+                for parametro in self._ajustes.get("quitar_parametros") or []:
+                    cuerpo.pop(parametro, None)
+            contenido = json.dumps(cuerpo).encode("utf-8")
+            cabeceras = [(k, v) for k, v in peticion.headers.raw if k.lower() != b"content-length"]
+            peticion = httpx.Request(
+                peticion.method, peticion.url, headers=cabeceras, content=contenido, extensions=peticion.extensions
+            )
+        return await self._interno.handle_async_request(peticion)
+
+    async def aclose(self) -> None:
+        await self._interno.aclose()
+
+
+def crear_real(
+    modelo: str,
+    modelo_emb: str,
+    max_tokens: int,
+    clave: str,
+    ajustes: dict | None = None,
+    transporte=None,
+    url_base: str | None = None,
+):
+    """Construye juez y embeddings reales sobre OpenRouter. `transporte` solo se usa en tests.
+
+    Ragas recibe un cliente `AsyncOpenAI` apuntando a OpenRouter: con ragas==0.4.3 la llamada
+    asíncrona es obligatoria en `ascore`, y el adaptador de OpenAI pide la salida en JSON.
+    """
+    from openai import AsyncOpenAI
     from ragas.embeddings.base import embedding_factory
     from ragas.llms import llm_factory
 
     contador = ContadorUso()
-    if ruta == "openai_compat":
-        import httpx
-        from openai import AsyncOpenAI
-
-        http = httpx.AsyncClient(transport=transporte, timeout=60, event_hooks={"response": [contador.al_responder]})
-        cliente = AsyncOpenAI(
-            api_key=clave,
-            http_client=http,
-            max_retries=1,
-            base_url=os.environ.get("S19_EVAL_BASE_URL", ENDPOINT_GEMINI_OPENAI),
-        )
-        llm = llm_factory(modelo, provider="openai", client=cliente, max_tokens=max_tokens)
-        emb = embedding_factory("openai", model=modelo_emb, client=cliente, interface="modern")
-        return llm, emb, contador
-    if ruta == "google_genai":
-        import instructor
-        from google import genai
-        from ragas.embeddings import GoogleEmbeddings
-        from ragas.llms.base import InstructorLLM
-
-        cliente = genai.Client(api_key=clave)
-        llm = InstructorLLM(
-            client=instructor.from_genai(cliente, use_async=True),
-            model=modelo,
-            provider="google",
-            max_tokens=max_tokens,
-        )
-        emb = GoogleEmbeddings(client=cliente, model=modelo_emb)
-        # Esta ruta no expone `usage`: se cuentan las llamadas, pero tokens y coste quedan
-        # como desconocidos (None), no como cero.
-        juzgar, incrustar, incrustar_varios = llm.agenerate, emb.aembed_text, emb.aembed_texts
-
-        async def juzgar_contado(prompt, response_model):
-            contador.llamadas_llm += 1
-            contador.sin_uso += 1
-            return await juzgar(prompt, response_model)
-
-        async def incrustar_contado(text, **kw):
-            contador.llamadas_embeddings += 1
-            return await incrustar(text, **kw)
-
-        async def incrustar_varios_contado(texts, **kw):
-            contador.llamadas_embeddings += 1
-            return await incrustar_varios(texts, **kw)
-
-        llm.agenerate, emb.aembed_text, emb.aembed_texts = (juzgar_contado, incrustar_contado, incrustar_varios_contado)
-        return llm, emb, contador
-    raise SystemExit(f"S19_EVAL_RUTA desconocida: {ruta!r} (openai_compat | google_genai)")
+    http = httpx.AsyncClient(
+        transport=TransporteOpenRouter(transporte or httpx.AsyncHTTPTransport(), ajustes or {}),
+        timeout=60,
+        event_hooks={"response": [contador.al_responder]},
+    )
+    cliente = AsyncOpenAI(
+        api_key=clave,
+        http_client=http,
+        max_retries=1,
+        base_url=url_base or os.environ.get("S19_OPENROUTER_BASE_URL", "").strip() or URL_OPENROUTER,
+    )
+    llm = llm_factory(modelo, provider="openai", client=cliente, max_tokens=max_tokens)
+    emb = embedding_factory("openai", model=modelo_emb, client=cliente, interface="modern")
+    return llm, emb, contador
 
 
 # ------------------------------------------------------------------ evaluación
 def _tarifa(modelo: str) -> dict | None:
     return json.loads((RAIZ / "tarifas.json").read_text(encoding="utf-8"))["modelos"].get(modelo)
+
+
+# Parámetros que Ragas envía siempre al juez (InstructorModelArgs de ragas 0.4.3).
+PARAMETROS_RAGAS = ("temperature", "top_p")
+
+
+def parametros_no_admitidos(modelo: str) -> list[str]:
+    """Los que el catálogo de OpenRouter (tarifas.json) dice que el modelo no admite.
+
+    Algunos modelos (por ejemplo varios de Anthropic) rechazan temperature y top_p. Sin ficha
+    o sin lista de parámetros no se quita nada: no se adivina.
+    """
+    ficha = _tarifa(modelo) or {}
+    admitidos = ficha.get("parametros") or []
+    return [p for p in PARAMETROS_RAGAS if admitidos and p not in admitidos]
 
 
 def motivo_previo(fila: dict, metrica: str) -> str | None:
@@ -325,21 +404,25 @@ async def evaluar(
             t0 = time.perf_counter()
             valor, motivo = await puntuar(metricas[nombre], nombre, fila, timeout)
             consumo = {"segundos": round(time.perf_counter() - t0, 3)}
-            if contador:  # ruta con `usage`: llamadas y tokens medidos
+            if contador:  # juez real: llamadas, tokens y coste medidos en cada respuesta HTTP
                 ahora = contador.foto()
                 d = {k: ahora[k] - antes[k] for k in ahora}
                 conocidos = d["sin_uso"] == 0
                 entrada = d["tokens_entrada"] if conocidos else None
                 salida_t = d["tokens_salida"] if conocidos else None
-                coste = None
-                if tarifa and conocidos:
+                coste, fuente = None, None
+                if d["sin_coste"] == 0:  # lo que cobró OpenRouter (juez + embeddings del juez)
+                    coste, fuente = round(d["coste_usd"], 8), "openrouter"
+                elif tarifa and conocidos:  # sin usage.cost: estimación con tarifas.json (solo LLM)
                     coste = round((entrada * tarifa["entrada"] + salida_t * tarifa["salida"]) / 1e6, 8)
+                    fuente = "tarifa"
                 consumo |= {
                     "llamadas_llm": d["llamadas_llm"],
                     "llamadas_embeddings": d["llamadas_embeddings"],
                     "tokens_entrada": entrada,
                     "tokens_salida": salida_t,
                     "coste_usd": coste,
+                    "coste_fuente": fuente,
                 }
             else:  # doble: llamadas contadas, sin tokens ni coste
                 consumo |= {
@@ -374,10 +457,10 @@ def resumen(puntuaciones: list[dict]) -> dict:
     return datos
 
 
-def descripcion_evaluador(modo: str, ruta: str | None, llm: str, emb: str) -> dict:
+def descripcion_evaluador(modo: str, ruta: str | None, llm: str, emb: str, ajustes: dict | None = None) -> dict:
     """Identidad del evaluador. Va en cada puntuación: dos ejecuciones solo son comparables
-    si este bloque es idéntico."""
-    return {
+    si este bloque es idéntico. `ruta` es "openrouter" en el modo real y None en el doble."""
+    datos = {
         "modo": modo,
         "ruta": ruta,
         "llm": llm,
@@ -387,6 +470,9 @@ def descripcion_evaluador(modo: str, ruta: str | None, llm: str, emb: str) -> di
         "python": platform.python_version(),
         "aviso": AVISO_DOBLE if modo == "doble" else None,
     }
+    if ajustes:  # solo en el modo real: también cambian lo que puntúa el juez
+        datos["ajustes"] = ajustes
+    return datos
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -395,7 +481,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--modo", choices=("doble", "real"), default="doble")
     p.add_argument("--execute", action="store_true", help="autoriza llamadas de pago (modo real)")
     p.add_argument("--timeout", type=float, default=90.0, help="segundos por métrica y caso")
+    p.add_argument("--env", help="archivo de entorno en lugar de ../.env (p. ej. ../.env.sol-opus)")
     args = p.parse_args(argv)
+    if args.env:
+        os.environ["S19_ENV_FILE"] = str(Path(args.env).expanduser().resolve())
     cargar_env()
     carpeta = Path(args.carpeta)
     try:
@@ -411,20 +500,24 @@ def main(argv: list[str] | None = None) -> int:
         evaluador = descripcion_evaluador("doble", None, "doble-lexico", "doble-hash-256")
         print(f"⚠  {AVISO_DOBLE}\n")
     else:
-        clave = os.environ.get("GEMINI_API_KEY", "").strip()
+        clave = os.environ.get("OPENROUTER_API_KEY", "").strip()
         if not args.execute or not clave:
             print(
-                "ERROR · el modo real consume la API del juez: hace falta GEMINI_API_KEY y "
-                "--execute. No se usa el juez doble en su lugar.",
+                "ERROR · el modo real consume la API del juez en OpenRouter: hace falta "
+                "OPENROUTER_API_KEY y --execute. No se usa el juez doble en su lugar.",
                 file=sys.stderr,
             )
             return 2
-        ruta = os.environ.get("S19_EVAL_RUTA", "openai_compat")
-        modelo = os.environ.get("S19_EVAL_LLM_MODEL", "gemini-3.8-flash")
-        modelo_emb = os.environ.get("S19_EVAL_EMBEDDING_MODEL", "gemini-embedding-001")
-        max_tokens = int(os.environ.get("S19_EVAL_MAX_TOKENS", "4096"))
-        llm, emb, contador = crear_real(ruta, modelo, modelo_emb, max_tokens, clave)
-        evaluador = descripcion_evaluador("real", ruta, modelo, modelo_emb)
+        modelo = os.environ.get("S19_EVAL_LLM_MODEL", "").strip() or EVAL_LLM_MODELO_DEFECTO
+        modelo_emb = os.environ.get("S19_EVAL_EMBEDDING_MODEL", "").strip() or EVAL_EMBEDDING_MODELO_DEFECTO
+        max_tokens = int(os.environ.get("S19_EVAL_MAX_TOKENS", "").strip() or "4096")
+        ajustes = {**ajustes_desde_entorno(), "max_tokens": max_tokens}
+        automaticos = parametros_no_admitidos(modelo)
+        if automaticos:
+            print(f"Según tarifas.json, {modelo} no admite {automaticos}: se quitan de sus peticiones.")
+            ajustes["quitar_parametros"] = sorted(set(ajustes["quitar_parametros"]) | set(automaticos))
+        llm, emb, contador = crear_real(modelo, modelo_emb, max_tokens, clave, ajustes)
+        evaluador = descripcion_evaluador("real", "openrouter", modelo, modelo_emb, ajustes)
 
     puntuaciones = asyncio.run(evaluar(filas, llm, emb, evaluador, contador, juez, args.timeout))
     intercambio.escribir_jsonl(carpeta / "puntuaciones.jsonl", puntuaciones, intercambio.PUNTUACIONES)

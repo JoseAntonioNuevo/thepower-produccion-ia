@@ -101,10 +101,10 @@ def s25_produccion(deck):
     takeaway(sl, "Antes de desplegar se mide contra referencias; después se observa sin ellas. Lo que falla en producción vuelve al conjunto.",
              label="Idea guía")
     footer(sl, block=5)
-    notes(sl, """19:42–19:45. Segunda parte del temario: análisis avanzado y métricas de producción. La diferencia clave: en producción no hay respuesta de referencia, así que no se puede calcular recall ni acierto. Se observan seis señales: latencia en percentiles y por paso; tokens y coste por consulta; tasa de rechazo; errores; opinión del usuario; y deriva de las preguntas. Explicar por qué percentiles y no medias con el gráfico ilustrativo: la media esconde la cola. Recorrer la tabla de análisis: segmentar, comparar versiones, muestrear con juez (siempre con cobertura), analizar errores y alertar. La demo ya registra por consulta latencia de recuperación y generación, tokens, coste estimado, rechazo y la configuración usada: es la materia prima de este análisis.
+    notes(sl, """19:42–19:45. Segunda parte del temario: análisis avanzado y métricas de producción. La diferencia clave: en producción no hay respuesta de referencia, así que no se puede calcular recall ni acierto. Se observan seis señales: latencia en percentiles y por paso; tokens y coste por consulta; tasa de rechazo; errores; opinión del usuario; y deriva de las preguntas. Explicar por qué percentiles y no medias con el gráfico ilustrativo: la media esconde la cola. Recorrer la tabla de análisis: segmentar, comparar versiones, muestrear con juez (siempre con cobertura), analizar errores y alertar. La demo ya registra por consulta latencia de recuperación y generación, tokens, coste, rechazo y la configuración usada, y el informe resume el bloque «Producción»: p50 y p95, tasas de error y de rechazo (separando las que no llaman al modelo), coste por consulta y por 1.000 consultas, y peso del juez en el coste. El gráfico es ilustrativo; cifras reales en resultados/ejemplo-real/modelos (Sol: p95 1,9 s; Hydrogen: 3,6 s).
 QUÉ ABRIR: un respuestas.jsonl para ver latencia_ms, tokens y coste_usd por caso.
 PREGUNTA: ¿qué nos dice una tasa de rechazo que pasa del 10 % al 35 % en una semana?
-Fuentes: temario de S19; campos registrados por demo-evaluacion/rag/consulta.py; documentación de Langfuse sobre tokens y coste (consultada el 16/11/2026).""")
+Fuentes: temario de S19; campos registrados por demo-evaluacion/rag/grafo.py e informe de evaluacion/informe.py; documentación de Langfuse sobre tokens y coste (consultada el 16/11/2026).""")
     return sl
 
 
@@ -235,15 +235,15 @@ def s28_practica(deck):
         ("Comparar", "Dos configuraciones con una sola variable distinta; trazas, tokens y coste."),
         ("Automatizar", "pytest con dobles, marcador llm y un control de regresión que falla cuando debe."),
     ], pitch=44, size=13.5, kw=150)
-    tag(sl, 48, 422, "pendiente", t="PERFIL REAL · NO EJECUTADO · ESTIMACIÓN")
-    text(sl, 290, 423, 610, 26, "python s19.py estimar: 566 llamadas como máximo, 0,57 USD estimados y 4,66 USD de cota "
-         "superior (tarifas de Gemini consultadas el 16/11/2026). Con el perfil doble, 0.", size=9.5, color=MUTED)
+    tag(sl, 48, 422, "real")
+    text(sl, 290, 423, 610, 26, "Gemini 4 Hydrogen genera y Claude Opus 5.5 juzga, vía OpenRouter: una pasada completa costó 1,29 USD "
+         "medidos (1,20 el juez). Test A: 13/14 aciertos y 6/6 rechazos. Con el perfil doble, 0.", size=9.5, color=MUTED)
     band_s(sl, "Guía paso a paso en demo-evaluacion/docs/ejercicio.md · 7–9 horas · se entrega código, datos, tests y tabla comparativa.")
     footer_s(sl)
-    notes(sl, """19:51–19:55. Presentar la práctica, que es opcional (indicación de la escuela del 04/11/2026). Leer las seis filas, que resumen el enunciado: construir desde documentos en bruto e índice vacío; preparar 20 preguntas y validación aparte con criterios fijados antes; medir recuperación y generación por separado; comprobar puntuaciones con revisión manual y no evaluables; comparar dos configuraciones cambiando una variable y registrar en Langfuse; automatizar con pytest y demostrar la regresión. Entrega: implementación, datos, entorno bloqueado, tests y tabla comparativa con fallos y cobertura. Se valoran la reconstrucción completa, las métricas separadas, la trazabilidad y las regresiones útiles. Ejecutar `python s19.py estimar` para enseñar el gasto previsto del perfil real: es una estimación con supuestos de tamaño, no una medición; el perfil real no se ha ejecutado. Se puede hacer entera con el perfil doble, sin gastar.
+    notes(sl, """19:51–19:55. Presentar la práctica, que es opcional (indicación de la escuela del 04/11/2026). Leer las seis filas, que resumen el enunciado: construir desde documentos en bruto e índice vacío; preparar 20 preguntas y validación aparte con criterios fijados antes; medir recuperación y generación por separado; comprobar puntuaciones con revisión manual y no evaluables; comparar dos configuraciones cambiando una variable y registrar en Langfuse; automatizar con pytest y demostrar la regresión. Entrega: implementación, datos, entorno bloqueado, tests y tabla comparativa con fallos y cobertura. Se valoran la reconstrucción completa, las métricas separadas, la trazabilidad y las regresiones útiles. Ejecutar `python s19.py estimar` para enseñar el gasto previsto del perfil real (2,91 USD estimados con supuestos de tamaño) y compararlo con lo medido el 22/11/2026: 1,29 USD por pasada completa, casi todo del juez Opus. Resultados en resultados/ejemplo-real/. El perfil real va siempre por OpenRouter: con una sola clave se eligen en .env los modelos de generación, embeddings y juez (OpenAI, Anthropic, Google…), y `python s19.py catalogo` actualiza sus precios. Se puede hacer entera con el perfil doble, sin gastar.
 QUÉ ABRIR: docs/ejercicio.md y la salida de `python s19.py estimar`.
 PREGUNTA: ¿qué parte os parece más difícil de hacer bien: los datos, las métricas o los tests?
-Fuentes: enunciado de S19 (ejercicios.docx, 29/09/2026); tarifas.json (ai.google.dev/gemini-api/docs/pricing, 16/11/2026).""")
+Fuentes: enunciado de S19 (ejercicios.docx, 29/09/2026); tarifas.json (catálogo público de OpenRouter, openrouter.ai/api/v1/models, 22/11/2026).""")
     return sl
 
 
@@ -259,7 +259,7 @@ def s29_cierre(deck):
         "¿Por qué el consumo del juez va aparte?", "¿De dónde salen los umbrales?"],
         ("PRÓXIMA SESIÓN · S20", "Proyecto final: agente conversacional. Lo de hoy es su red de seguridad."),
         ("MATERIALES DE S19", "demo-evaluacion: README paso a paso, guion, comandos, ejercicio opcional, "
-                              "73 tests y resultados de ejemplo del perfil doble."))
+                              "131 tests y resultados de ejemplo del perfil doble y del real."))
     notes(sl, """19:55–20:00. Cierre. Leer las seis ideas, una por bloque más la de no evaluables. Lanzar las cuatro preguntas de comprobación y dejar que respondan los alumnos: denominador de recall@5 (los documentos relevantes de esa pregunta); qué no detecta Faithfulness (respuesta incompleta o incorrecta apoyada en el contexto); por qué el consumo del juez va aparte (para no confundir el coste de responder con el de juzgar); de dónde salen los umbrales (de validación, con margen, nunca del test). Recordar que la práctica es opcional y dónde está la guía. Anunciar S20: proyecto final. Turno de preguntas.
 QUÉ ABRIR: nada; dejar la terminal a mano por si hay dudas sobre algún comando.
 PREGUNTA: ¿qué vais a medir primero en vuestro proyecto final?

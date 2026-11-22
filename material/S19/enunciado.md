@@ -45,8 +45,9 @@ Documentación de apoyo: Faithfulness en Ragas 0.4.3 · Ragas con Gemini · Toke
 
 ## Cómo seguirlo con este paquete
 
-Guía paso a paso: [demo-evaluacion/docs/ejercicio.md](demo-evaluacion/docs/ejercicio.md). Dos avisos sobre la API de Ragas 0.4.3,
-comprobados al instalar las versiones fijadas ([detalle](demo-evaluacion/evaluador/README.md)):
+Guía paso a paso: [demo-evaluacion/docs/ejercicio.md](demo-evaluacion/docs/ejercicio.md). Avisos sobre la API de Ragas 0.4.3,
+comprobados al instalar las versiones fijadas ([detalle](demo-evaluacion/evaluador/README.md)), y sobre el proveedor:
 
 1. `AnswerRelevancy.ascore` recibe `user_input` y `response`; **no** recibe `retrieved_contexts`.
 2. La llamada síncrona de la guía «Ragas con Gemini» falla con `ascore`. La demo usa un cliente asíncrono y lo declara como sustitución.
+3. El perfil real usa siempre OpenRouter: los modelos de generación, embeddings y juez (también los de Gemini) se eligen en `.env`.

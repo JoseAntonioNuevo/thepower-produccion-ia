@@ -1,0 +1,124 @@
+{
+  "variable": "chunk_size",
+  "valor_A": 320,
+  "valor_B": 900,
+  "run_A": "test-A-real-20261122-001530",
+  "run_B": "test-B-real-20261122-001903",
+  "conjunto": "test",
+  "n_casos": 20,
+  "perfil": "real",
+  "aviso": null,
+  "filas": [
+    {
+      "metrica": "precision@5",
+      "A": 0.2429,
+      "B": 0.2286,
+      "delta": -0.0143
+    },
+    {
+      "metrica": "recall@5",
+      "A": 1.0,
+      "B": 0.9643,
+      "delta": -0.0357
+    },
+    {
+      "metrica": "rechazos correctos (tasa)",
+      "A": 1.0,
+      "B": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metrica": "abstenciones incorrectas (tasa)",
+      "A": 0.0714,
+      "B": 0.1429,
+      "delta": 0.0715
+    },
+    {
+      "metrica": "aciertos por criterio (tasa)",
+      "A": 0.9286,
+      "B": 0.7857,
+      "delta": -0.1429
+    },
+    {
+      "metrica": "faithfulness (media)",
+      "A": 0.9038,
+      "B": 1.0,
+      "delta": 0.0962
+    },
+    {
+      "metrica": "faithfulness (cobertura)",
+      "A": 1.0,
+      "B": 0.9167,
+      "delta": -0.0833
+    },
+    {
+      "metrica": "answer_relevancy (media)",
+      "A": 0.8379,
+      "B": 0.8739,
+      "delta": 0.036
+    },
+    {
+      "metrica": "answer_relevancy (cobertura)",
+      "A": 1.0,
+      "B": 0.9167,
+      "delta": -0.0833
+    },
+    {
+      "metrica": "latencia mediana (ms)",
+      "A": 3314.8,
+      "B": 2985.2,
+      "delta": -329.6
+    },
+    {
+      "metrica": "latencia p95 (ms)",
+      "A": 5322.8,
+      "B": 7750.4,
+      "delta": 2427.6
+    },
+    {
+      "metrica": "coste por consulta (USD)",
+      "A": 0.0035164,
+      "B": 0.00393678,
+      "delta": 0.0004
+    },
+    {
+      "metrica": "coste del sistema (USD)",
+      "A": 0.0703185,
+      "B": 0.078726,
+      "delta": 0.0084
+    },
+    {
+      "metrica": "coste del evaluador (USD)",
+      "A": 0.47234878,
+      "B": 0.4337276,
+      "delta": -0.0386
+    }
+  ],
+  "casos_que_cambian": [
+    {
+      "caso_id": "T08",
+      "A": true,
+      "B": false
+    },
+    {
+      "caso_id": "T14",
+      "A": true,
+      "B": false
+    }
+  ],
+  "no_evaluables": {
+    "A": [],
+    "B": [
+      {
+        "caso_id": "T12",
+        "metrica": "faithfulness",
+        "motivo": "respuesta_vacia"
+      },
+      {
+        "caso_id": "T12",
+        "metrica": "answer_relevancy",
+        "motivo": "respuesta_vacia"
+      }
+    ]
+  }
+}

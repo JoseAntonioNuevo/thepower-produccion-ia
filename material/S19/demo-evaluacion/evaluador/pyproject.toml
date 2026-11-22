@@ -7,9 +7,9 @@ dependencies = [
     # Versiones fijadas por el enunciado de S19. No se cambian sin dejarlo por escrito.
     "ragas==0.4.3",
     "langchain-community==0.3.31",
-    # Cliente de Gemini para la ruta de la guía «Ragas con Gemini». La ruta compatible con
-    # OpenAI usa el paquete `openai`, que ya es dependencia de Ragas.
-    "google-genai==3.3.0",
+    # El juez real habla con OpenRouter mediante el cliente `openai`, que ya es dependencia
+    # de Ragas; se fija para que el bloqueo no dependa de lo que arrastre Ragas.
+    "openai==3.3.0",
 ]
 
 [dependency-groups]

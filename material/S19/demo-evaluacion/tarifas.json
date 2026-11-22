@@ -1,14 +1,187 @@
 {
-  "consultado": "2026-11-16",
-  "fuente": "https://ai.google.dev/gemini-api/docs/pricing",
-  "nivel": "Gemini Developer API · Standard · Paid Tier",
+  "consultado": "2026-11-22",
+  "fuente": "https://openrouter.ai/api/v1/models y /embeddings/models",
+  "proveedor": "OpenRouter",
   "moneda": "USD",
   "unidad": "por 1.000.000 de tokens",
-  "aviso": "Tarifas públicas leídas en la fecha indicada. El coste calculado con ellas es una ESTIMACIÓN, no una factura. Vuelve a comprobarlas antes de ejecutar.",
+  "aviso": "Precios de OpenRouter leídos en la fecha indicada. Son los que OpenRouter publica para cada modelo; el coste real de cada llamada es el que devuelve la API en usage.cost. Vuelve a ejecutar `python s19.py catalogo` antes de gastar y cada vez que cambies un modelo.",
   "modelos": {
-    "gemini-3.5-flash-lite": {"entrada": 0.30, "salida": 2.50, "nota": "la salida incluye tokens de razonamiento"},
-    "gemini-3.8-flash": {"entrada": 0.75, "salida": 3.75, "nota": "hasta el 31/12/2026; 1,50 y 7,50 desde el 01/01/2027"},
-    "gemini-embedding-2": {"entrada": 0.20, "salida": 0.0, "nota": "entrada de texto"},
-    "gemini-embedding-001": {"entrada": 0.15, "salida": 0.0}
+    "anthropic/claude-haiku-5.5": {
+      "tipo": "chat",
+      "entrada": 0.1,
+      "salida": 0.5,
+      "contexto": 1000000,
+      "parametros": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ]
+    },
+    "anthropic/claude-opus-5.5": {
+      "tipo": "chat",
+      "entrada": 4.0,
+      "salida": 20.0,
+      "contexto": 1000000,
+      "parametros": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ]
+    },
+    "google/gemini-3.5-flash-lite": {
+      "tipo": "chat",
+      "entrada": 0.3,
+      "salida": 2.5,
+      "contexto": 1048576,
+      "parametros": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ]
+    },
+    "google/gemini-3.8-flash": {
+      "tipo": "chat",
+      "entrada": 0.825,
+      "salida": 4.125,
+      "contexto": 1048576,
+      "parametros": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ]
+    },
+    "google/gemini-4-hydrogen": {
+      "tipo": "chat",
+      "entrada": 1.5,
+      "salida": 7.5,
+      "contexto": 1048576,
+      "parametros": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ]
+    },
+    "google/gemini-4-neon": {
+      "tipo": "chat",
+      "entrada": 3.0,
+      "salida": 15.0,
+      "contexto": 1048576,
+      "parametros": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ]
+    },
+    "google/gemini-embedding-001": {
+      "tipo": "embeddings",
+      "entrada": 0.15,
+      "salida": 0.0,
+      "contexto": 20000,
+      "parametros": []
+    },
+    "google/gemini-embedding-2": {
+      "tipo": "embeddings",
+      "entrada": 0.2,
+      "salida": 0.0,
+      "contexto": 8192,
+      "parametros": []
+    },
+    "openai/gpt-6-luna": {
+      "tipo": "chat",
+      "entrada": 0.1,
+      "salida": 0.5,
+      "contexto": 1050000,
+      "parametros": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ]
+    },
+    "openai/gpt-6.2-sol": {
+      "tipo": "chat",
+      "entrada": 2.0,
+      "salida": 10.0,
+      "contexto": 1050000,
+      "parametros": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ]
+    },
+    "openai/text-embedding-3-small": {
+      "tipo": "embeddings",
+      "entrada": 0.02,
+      "salida": 0.0,
+      "contexto": 8192,
+      "parametros": []
+    }
   }
 }

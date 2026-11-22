@@ -13,14 +13,21 @@ MIN_DOCUMENTOS = 8  # el enunciado pide al menos ocho documentos ficticios
 
 
 def identidad_indice(cfg: Config, documentos: list[Documento]) -> str:
-    """El índice se identifica por lo que determina sus vectores: corpus, fragmentación y modelo."""
-    return "idx-" + huella(
+    """El índice se identifica por lo que determina sus vectores: corpus, fragmentación y modelo.
+
+    En el perfil real también cuentan la plantilla con la que se presenta cada fragmento y si
+    se pidió reducir la dimensión: cambiar cualquiera de las dos en .env crea OTRO índice.
+    """
+    partes = [
         sorted(d.contenido_hash for d in documentos),
         cfg.chunk_size,
         cfg.chunk_overlap,
         cfg.embedding_modelo,
         cfg.embedding_dim,
-    )
+    ]
+    if cfg.perfil == "real":
+        partes += [cfg.plantilla_documento, cfg.embedding_enviar_dim]
+    return "idx-" + huella(*partes)
 
 
 def reconstruir_indice(cfg: Config, almacen, embeddings, carpeta: Path = CORPUS) -> Indice:

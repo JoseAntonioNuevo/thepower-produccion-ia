@@ -66,6 +66,9 @@ distinto del test. En un RAG se mide en dos sitios: después de recuperar y desp
 2. Abre `datos/test.jsonl`: enseña T01 (respondible, con `documentos_relevantes` y `datos_clave`) y T16 (sin respuesta).
 3. `ingestar --config A` → 41 fragmentos. Repítelo: mismo índice, no duplica.
 4. `preguntar` una respondible y una sin respuesta.
+5. Si se quiere ver el grafo de LangGraph paso a paso: `chat` y escribe `1` (T01) y `6` (T17). En
+   el panel se ve qué rama toma cada pregunta. Guion detallado con modelos reales en
+   `material/S19/guion-directo-modelos.md` (fuera del ZIP).
 
 Pregunta de comprobación: *¿por qué las preguntas del test no pueden estar en el corpus?*
 
@@ -108,7 +111,9 @@ marcados y fuera de la ejecución por defecto. En un agente se prueban decisione
 llamadas, no el texto. Los umbrales salen de validación con margen y se congelan.
 
 **Vivo 4 (7 min) · la demostración central.**
-1. `uv run pytest` → 73 pasan, 2 excluidos. Enseña `addopts` en `pyproject.toml`.
+1. `uv run pytest` → 131 pasan, 3 excluidos. Enseña `addopts` en `pyproject.toml` y, para
+   agentes, `tests/test_grafo.py` y `tests/test_enrutado.py`: se comprueba la trayectoria (nodos
+   recorridos) y que `recursion_limit` corta una regla rota.
 2. `umbrales resultados/mi-validacion-A` → nueve reglas comparadas con las fijadas en
    `datos/umbrales.doble.json` sin sobrescribir el archivo (solo se actualiza con `--fijar`).
 3. `regresion resultados/mi-validacion-A` → PASA. `echo $?` → 0.
@@ -122,7 +127,9 @@ Pregunta: *¿qué pasaría si el control tratara un «sin dato» como aprobado?*
 Explica (27–30): comparar cambiando una variable; en producción no hay referencias, así que
 se miran latencia p50/p95, coste y tokens por consulta, tasa de rechazo, errores, feedback y
 deriva. Langfuse une ambas cosas: traza por consulta con puntuaciones, y el consumo del juez
-en una traza distinta. Las trazas malas de producción alimentan el siguiente conjunto.
+en una traza distinta. Las trazas malas de producción alimentan el siguiente conjunto. El
+informe ya trae esas cifras (bloque «Producción»: p95, tasas, coste por consulta y por 1.000,
+peso del juez), y `resultados/ejemplo-real/modelos/` es una evaluación de modelos real.
 
 **Vivo 5 (4 min).**
 1. `comparar` test A y B: B rechaza mejor (4/6) pero se abstiene el doble (8/14). Una sola variable.
@@ -134,5 +141,5 @@ Pregunta: *¿por qué no sumar el coste del juez al coste por consulta?*
 ## Práctica y cierre · 19:51–20:00
 
 - **Diapositiva 31.** Práctica **opcional** (7–9 h). `estimar`: 566 llamadas como máximo,
-  0,57 USD estimados, cota 4,66 USD. Guía en [ejercicio.md](ejercicio.md).
+  2,91 USD estimados, cota 24,90 USD, con los modelos por defecto de OpenRouter: Gemini 4 Hydrogen genera y Claude Opus 5.5 juzga (se cambian en `.env`). Guía en [ejercicio.md](ejercicio.md).
 - **Diapositiva 32.** Cinco ideas; preguntas. Siguiente sesión: S20, proyecto final.

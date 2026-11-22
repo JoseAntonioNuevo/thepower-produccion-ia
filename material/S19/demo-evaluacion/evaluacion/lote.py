@@ -22,7 +22,7 @@ from rag.observabilidad import Trazador
 def versiones() -> dict:
     """Versiones de las librerías que intervienen: forman parte del resultado."""
     salida = {}
-    for paquete in ("psycopg", "google-genai", "langfuse"):
+    for paquete in ("psycopg", "openai", "langfuse"):
         try:
             salida[paquete] = md.version(paquete)
         except md.PackageNotFoundError:
@@ -75,7 +75,9 @@ def ejecutar_lote(
                         "latencia_ms": {},
                         "tokens": {},
                         "coste_usd": None,
+                        "coste_fuente": None,
                         "model_version": None,
+                        "proveedor_servido": None,
                         "error": f"{type(exc).__name__}: {exc}",
                         "traza_id": traza.trace_id,
                     }
@@ -97,7 +99,9 @@ def ejecutar_lote(
                     "latencia_ms": r.latencia_ms,
                     "tokens": r.tokens,
                     "coste_usd": r.coste_usd,
+                    "coste_fuente": r.coste_fuente,
                     "model_version": r.model_version,
+                    "proveedor_servido": r.proveedor_servido,
                     "error": None,
                     "traza_id": traza.trace_id,
                 }
@@ -109,7 +113,8 @@ def ejecutar_lote(
                 metadatos={
                     "documentos_recuperados": r.documentos_recuperados,
                     "latencia_ms": r.latencia_ms,
-                    "coste_usd_estimado": r.coste_usd,
+                    "coste_usd": r.coste_usd,
+                    "coste_fuente": r.coste_fuente,
                     "respondible": caso["respondible"],
                 },
                 puntuaciones={
@@ -130,14 +135,26 @@ def ejecutar_lote(
         "config": cfg.publica(),
         "modelos": modelos,
         "versiones_modelo": sorted({f["model_version"] for f in filas if f.get("model_version")}),
+        # Quién sirvió cada modelo dentro de OpenRouter. Si aparece más de uno, la ejecución
+        # mezcló infraestructuras: fija S19_GEN_PROVEEDORES para comparar en igualdad.
+        "proveedores_servidos": sorted({f["proveedor_servido"] for f in filas if f.get("proveedor_servido")}),
         "versiones": versiones(),
         "llamadas": {"embeddings": proveedores.embeddings.llamadas, "generacion": proveedores.generador.llamadas},
+        # Coste de los embeddings de las preguntas (solo perfil real, cobrado por OpenRouter).
+        "coste_embeddings_usd": _coste_embeddings(proveedores.embeddings),
         "langfuse": trazador.activo,
         "aviso": AVISO_DOBLE if cfg.perfil == "doble" else None,
     }
     (carpeta / "manifiesto.json").write_text(json.dumps(manifiesto, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     trazador.cerrar()
     return filas
+
+
+def _coste_embeddings(embeddings) -> float | None:
+    """Coste acumulado por el proveedor de embeddings; None si no lo lleva o falta algún dato."""
+    if not getattr(embeddings, "coste_conocido", False):
+        return None
+    return round(embeddings.coste_usd, 8)
 
 
 AVISO_DOBLE = (

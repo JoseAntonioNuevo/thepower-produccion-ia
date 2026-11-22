@@ -209,3 +209,98 @@ diapositivas no requieren cambios.
 
 Pendiente de José: perfil real (gasto), publicar el paquete o un repositorio para los alumnos,
 validar los recortes de tiempo del 20/11, ensayo cronometrado y abrir el PPTX en Keynote o PowerPoint.
+
+## Perfil real sobre OpenRouter · 21/11/2026
+
+Petición de José: el perfil real usa siempre OpenRouter y cualquier modelo (generación,
+embeddings, juez y embeddings del juez) se cambia desde `.env`, sin tocar el código.
+
+| Qué | Cambio |
+|---|---|
+| Proveedor | `google-genai` retirado de los dos proyectos; cliente `openai==3.3.0` contra `https://openrouter.ai/api/v1` (`S19_OPENROUTER_BASE_URL`). Clave única: `OPENROUTER_API_KEY` |
+| Configuración | Todo desde `.env`: modelos, dimensión de embeddings y si se pide, plantillas de documento y consulta, tokens máximos y temperatura (vacía = no se envía), orden fijo de proveedores (`S19_*_PROVEEDORES`), campos extra en JSON (`S19_*_EXTRA`) y parámetros que se quitan al juez. Un test comprueba que `.env.example` documenta todas las variables que lee el código |
+| Valores por defecto | Generación `google/gemini-3.5-flash-lite`; embeddings `openai/text-embedding-3-small` (768); juez `anthropic/claude-haiku-5.5`, de otra familia; embeddings del juez `openai/text-embedding-3-small`. Verificados en el catálogo de OpenRouter el 21/11 |
+| Coste | Se guarda lo que cobra OpenRouter (`usage.cost`, `coste_fuente: "openrouter"`) en el RAG y, aparte, en el juez; si falta, estimación con `tarifas.json` (`"tarifa"`). Langfuse recibe ese coste |
+| Catálogo | `python s19.py catalogo`: lee la API pública de OpenRouter (sin clave ni coste) y escribe `tarifas.json` con precios, tipo y parámetros admitidos. Un modelo inexistente es un error con sugerencias |
+| Preflight real | Comprueba clave (sin mostrarla), que cada modelo está en el catálogo, parámetros no admitidos y si el umbral de evidencia está calibrado para el modelo de embeddings actual |
+| Índice | La columna `vector` ya no tiene dimensión fija y se retira el HNSW (exige dimensión fija; la evaluación usaba búsqueda exacta). Migración idempotente en `esquema.sql`. La identidad del índice real incluye plantilla y envío de dimensión. Conviven índices de dimensiones distintas |
+| Comparación | `gen_modelo` puede ser la variable de una A/B (solo perfil real); el modelo de embeddings debe coincidir. El manifiesto guarda `proveedores_servidos`, `versiones_modelo` y `coste_embeddings_usd` |
+| Estimación | Con los modelos por defecto: 566 llamadas como máximo, **0,13 USD** estimados, **0,76 USD** de cota (antes 0,57 y 4,66 con Gemini directo) |
+
+| Comprobación | Resultado |
+|---|---|
+| `uv lock --check` | Demo 46 paquetes · evaluador 100 paquetes |
+| Demo: `ruff check` / `ruff format --check` | Limpio · 61 archivos formateados |
+| Demo: `pytest -q` | **95 passed, 3 deselected** (21 tests nuevos en `tests/test_openrouter.py`, con el cliente `openai` real y HTTP simulado) |
+| Demo: `pytest -m db` | **2 passed** (nuevo: índices de 768 y 1536 dimensiones en la misma base) |
+| Evaluador: `pytest -q` | **17 passed, 1 deselected** (OpenRouter simulado: coste cobrado, coste estimado, proveedores, extra y parámetros quitados en cada petición) |
+| Migración del esquema | Base creada con el esquema del commit `ea0f863` (`vector(768)`) → esquema nuevo aplicado dos veces: `vector`, sin HNSW, sin errores |
+| Recorrido doble completo en pgvector | Métricas, casos y comparación **idénticos** a `resultados/ejemplo-doble/`; `datos/` sin cambios; regresión 0 / 1 / 1 |
+| Perfil real sin clave | `ingestar` sin `--execute` y con él, y `evaluar.py --modo real`, terminan con error claro sin llamar a nada |
+| Raíz | `ruff check` limpio · 226 archivos formateados · 65 tests |
+| Presentación | Diapositivas 18 (entorno: openai, 46 y 100 paquetes; juez vía OpenRouter), 22, 23 y 32 (95 tests) y 31 (estimación nueva); notas de 4, 18, 22, 26 y 31. `check.py` CORRECTO; PDF de 32 páginas; 18 y 31 revisadas sobre el render. SHA-256 PPTX `38d06b24…`, PDF `fa22cc1e…` |
+| Paquete de alumnos | Regenerado (117 archivos) y probado en carpeta limpia: 95 + 17 tests y `estimar` |
+
+Pendiente: ninguna llamada real a OpenRouter (sin clave ni gasto autorizado). Sin verificar
+contra la API: que OpenRouter respete `dimensions` en `openai/text-embedding-3-small`, que el
+juez `anthropic/claude-haiku-5.5` devuelva JSON válido para Ragas con `response_format` y que
+`usage.cost` llegue en las respuestas de embeddings.
+
+### Modelos por defecto del perfil real · 22/11/2026
+
+Petición de José: generación con **Gemini 4 Hydrogen** y juez de Ragas con **Claude Opus 5.5**.
+
+| Qué | Resultado |
+|---|---|
+| Identificadores en OpenRouter (catálogo del 22/11) | `google/gemini-4-hydrogen` (1,50 / 7,50 USD por millón; admite `temperature`) y `anthropic/claude-opus-5.5` (4 / 20 USD; admite `response_format`, **no** `temperature` ni `top_p`) |
+| Juez sin `temperature`/`top_p` | El evaluador quita automáticamente los parámetros que Ragas envía y que el catálogo dice que el juez no admite; queda registrado en sus ajustes. Test nuevo |
+| Margen de tokens | `S19_GEN_MAX_TOKENS` por defecto 2048: Gemini 4 puede razonar y esos tokens cuentan dentro del máximo |
+| Estimación | 566 llamadas como máximo; **2,91 USD** estimados y **24,90 USD** de cota (antes 0,13 y 0,76). Casi todo es el juez |
+| Comprobaciones | Demo 95 passed, 3 deselected · evaluador 18 passed · ruff limpio (demo y raíz) · raíz 65 tests · preflight real reconoce los cuatro modelos · presentación regenerada (diapositiva 31 revisada; `check.py` CORRECTO; PPTX `2f968daf…`, PDF `5f69c5bd…`) · ZIP regenerado |
+
+## Perfil real ejecutado · 22/11/2026
+
+Gasto autorizado por José; clave de OpenRouter entregada con el sistema de secretos de T3 Code y
+guardada solo en `demo-evaluacion/.env` (ignorado por Git; no aparece en resultados ni en el ZIP).
+Modelos: Gemini 4 Hydrogen (generación), `openai/text-embedding-3-small` (768) y Claude Opus 5.5 (juez).
+
+| Paso | Resultado |
+|---|---|
+| Clave | Válida; límite 15 USD, que también descuenta lo que facturan los proveedores con BYOK |
+| Prueba corta | Embeddings de 768 dimensiones; Gemini responde y cita; Opus devuelve JSON con `response_format` |
+| **Fallo encontrado: coste 0 con BYOK** | La cuenta usa claves propias de los proveedores: `usage.cost` es solo la comisión de OpenRouter (0) y la inferencia va en `cost_details.upstream_inference_cost`. Corregido en el RAG y en el juez, con tests |
+| **Fallo encontrado: respuestas vacías** | Primera pasada: 3 casos con los 2048 tokens gastados razonando (`finish_reason=length`). Con `reasoning.effort=low` responde y cuesta menos de la mitad. Ahora es el valor por defecto (`S19_GEN_EXTRA`) y se avisa `max_tokens_agotado`. La primera pasada se conserva en `resultados/ejemplo-real/primera-pasada-razonamiento-libre/` |
+| **Fallo encontrado: test `llm` del evaluador** | Se saltaba porque no cargaba `../.env`. Corregido; ahora pasa |
+| Indexación y calibración | A 41 y B 13 fragmentos; umbral de evidencia 0,5223 (7/8 en validación) |
+| Segunda pasada (definitiva) | Sin respuestas vacías. Test A: precision@5 0,24, recall@5 1,00, rechazos 6/6, abstenciones 1/14, aciertos 13/14, faithfulness 0,92 y answer_relevancy 0,87 con cobertura 13/13. Test B: aciertos 11/14, abstenciones 3/14 |
+| Regresión (umbrales de validación A, fijados antes del test) | Validación A y test A: PASA (0). Validación B: FALLA (1), abstenciones 0,20 > 0,10 |
+| Tests de pago | `pytest -m llm`: RAG 1 passed; evaluador 1 passed |
+| Coste | Segunda pasada: 1,292 USD registrados (0,091 RAG + 1,201 juez) frente a 1,288 USD que bajó el saldo. Total de toda la jornada (pruebas, diagnóstico y dos pasadas): **2,76 USD** (saldo 15 → 12,24) |
+| Después | Demo 103 passed, 3 deselected · `-m db` 2 passed · evaluador 19 passed · ruff limpio (demo y raíz) · raíz 65 tests · presentación regenerada (31 con el rótulo «PERFIL REAL · MEDIDO EL 22/11/2026»; 22, 23 y 32 con 103 tests; `check.py` CORRECTO; PPTX `00a8f0b0…`, PDF `8880ce5b…`) · ZIP regenerado con `resultados/ejemplo-real/` (173 archivos, sin la clave) |
+
+Pendiente: revisión manual humana de `resultados/ejemplo-real/test-A/revision-manual.csv`; Langfuse contra un servidor.
+
+## LangGraph, chat en terminal, evaluación de modelos y métricas de producción · 22/11/2026
+
+Petición de José: refactorizar el RAG a **LangGraph** con una interfaz de terminal como la de la
+primera clase (OpenTUI de `1-langGraph`), cubrir los cuatro bloques del temario y dejar Langfuse
+listo para cuando haya claves. Código copiado y adaptado, sin depender de aquel repositorio.
+
+| Qué | Resultado |
+|---|---|
+| Dependencias | `langgraph==1.2.11`, `langchain-core==1.5.5`, `opentui==0.1.2` (las de S5/S6). `uv lock --check` correcto; el evaluador no cambia |
+| Consulta como grafo (`rag/grafo.py`) | `recuperar → generar → comprobar` o `recuperar → rechazo_previo`. `responder()` conserva firma y salida. Perfil doble antes y después: **56 de 56 respuestas idénticas** (validación y test, A y B; sin contar latencias) |
+| Trazas desde nodos | Cada paso cuelga explícitamente de la raíz `consulta-rag`. Comprobado con el SDK real (tracing activo, envío a un puerto cerrado): `recuperacion` y `generacion` con padre = raíz y la misma traza |
+| CRAG como agente LangGraph | `recuperar ⇄ reformular → responder | rechazar`, `Trayectoria.ruta`, `recursion_limit` como red de seguridad. Tests de trayectoria y de una regla rota cortada por `GraphRecursionError` |
+| Chat `s19.py chat` | Motor sin pantalla (`ui/motor.py`) + TUI (`ui/tui.py`, `ui/rag_tui.py`). Probado en pseudo-terminal 160×45 con perfil doble (3 preguntas) y real (T12 con Hydrogen, `/perfil sol-opus`, T12 con Sol), pantalla reconstruida con `pyte`. Corregidos en esa prueba: cabecera que no cambiaba con `/perfil`, coste con punto y línea del juez demasiado larga |
+| `--env` | En todos los comandos de `s19.py` y en `evaluar.py`; un archivo inexistente es un error. `/perfil` en el chat cambia de archivo sin arrastrar valores (`cargar_env(sustituir=True)`) |
+| **Fallo encontrado: coste del sistema** | El informe solo sumaba las respuestas emitidas y dejaba fuera los rechazos del modelo, que se pagan. Corregido (rechazo previo = único sin llamada). Test A real de Hydrogen: 0,031 → **0,041 USD**. Informes y comparaciones versionados regenerados |
+| Métricas de producción | Bloque «Producción» del informe: p50/p95 (rango más cercano), tasas de error y rechazo, rechazos sin modelo, coste por consulta y por 1.000, peso del juez. `comparar` añade p95 y coste por consulta |
+| Evaluación de modelos (`MH`/`MS`, juez Opus, `--env .env.sol-opus`) | Hydrogen 13/14, Sol 12/14 (T12 «24×7», T14 «ms»: fallos del criterio); faithfulness 0,92 / 1,00; p95 3,65 / 1,88 s; 2,13 / 1,00 USD por 1.000 consultas. `comparar` la acepta (solo cambia `gen_modelo`); regresión PASA en las dos. `resultados/ejemplo-real/modelos/` |
+| Variabilidad observada | T12 con Sol: «24x7» (test del 22/11, acierto), «24×7» (evaluación `MS`, fallo) y «No consta» (prueba del chat). Recogido en el guion del directo |
+| Langfuse | Bloque de claves vacío en `.env.hydrogen-sol` y `.env.sol-opus`; con `on` y sin claves, `preflight` falla con mensaje claro. **Envío a un servidor sin probar** (faltan claves) |
+| Gasto | 0,98 USD en chat real, evaluación de modelos y prueba `llm` (saldo 11,15 → 10,17) |
+| Después | Demo **131 passed**, 3 deselected · `-m db` 2 passed · `-m llm` (Sol) 1 passed · evaluador 19 passed · ruff limpio (demo y raíz) · raíz 65 tests · `cfn-lint` correcto · presentación regenerada (22, 23, 32 con 131 tests; 24 con el agente LangGraph; `check.py` CORRECTO; PPTX `881d816a…`, PDF `ee766e49…`) · ZIP regenerado (197 archivos, sin claves ni guion del profesor) y probado descomprimido: 131 + 19 tests |
+
+Pendiente: claves de Langfuse y prueba de envío; ver el chat en la terminal de José; revisión
+manual humana de `resultados/ejemplo-real/test-A/revision-manual.csv`.

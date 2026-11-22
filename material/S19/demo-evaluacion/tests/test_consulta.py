@@ -1,7 +1,6 @@
 """Consulta con respuestas simuladas: formato, fuentes, rechazo y errores."""
 
 import json
-from types import SimpleNamespace
 
 import pytest
 
@@ -9,7 +8,7 @@ from evaluacion.intercambio import RESPUESTAS, leer_jsonl
 from evaluacion.lote import ejecutar_lote
 from rag.consulta import MENSAJE_RECHAZO, extraer_fuentes, responder
 from rag.costes import desglose_coste_usd
-from rag.proveedores import NO_CONSTA, ErrorProveedor, GeneradorGemini, Proveedores
+from rag.proveedores import NO_CONSTA, ErrorProveedor, Proveedores
 from tests.conftest import GeneradorSimulado, config
 
 PREGUNTA = "¿Qué crédito corresponde si la disponibilidad mensual es inferior al 99,00 %?"
@@ -66,7 +65,11 @@ def test_tokens_y_coste_estimado_con_tarifa(sistema):
     almacen, prov, indice_id = sistema
     generador = GeneradorSimulado("Es del 25 % [05-sla-y-creditos-servicio]", tokens=(1000, 200))
     r = responder(
-        config(gen_modelo="gemini-3.5-flash-lite"), almacen, Proveedores(prov.embeddings, generador), indice_id, PREGUNTA
+        config(gen_modelo="google/gemini-3.5-flash-lite"),
+        almacen,
+        Proveedores(prov.embeddings, generador),
+        indice_id,
+        PREGUNTA,
     )
     assert r.tokens == {"entrada": 1000, "salida": 200}
     assert r.coste_usd == pytest.approx((1000 * 0.30 + 200 * 2.50) / 1e6)
@@ -107,26 +110,26 @@ def test_el_lote_conserva_el_caso_fallido_con_su_error(cfg, sistema, tmp_path):
 
 
 def test_desglose_coste_usd_con_tarifa_y_sin_ella():
-    assert desglose_coste_usd("gemini-3.5-flash-lite", 1000, 200) == {
+    assert desglose_coste_usd("google/gemini-3.5-flash-lite", 1000, 200) == {
         "input": 0.0003,
         "output": 0.0005,
         "total": 0.0008,
     }
     assert desglose_coste_usd("modelo-sin-precio", 1000, 200) is None
-    assert desglose_coste_usd("gemini-3.5-flash-lite", None, 200) is None
-    assert desglose_coste_usd("gemini-3.5-flash-lite", 1000, None) is None
+    assert desglose_coste_usd("google/gemini-3.5-flash-lite", None, 200) is None
+    assert desglose_coste_usd("google/gemini-3.5-flash-lite", 1000, None) is None
 
 
-def test_generador_gemini_propaga_model_version_a_respuesta_lote_y_manifiesto(sistema, tmp_path):
+def test_model_version_proveedor_y_coste_llegan_a_respuesta_lote_y_manifiesto(sistema, tmp_path):
     almacen, prov, indice_id = sistema
-    respuesta_api = SimpleNamespace(
-        text="El crédito es del 25 % [05-sla-y-creditos-servicio].",
-        usage_metadata=SimpleNamespace(prompt_token_count=100, candidates_token_count=40, thoughts_token_count=10),
-        model_version="gemini-3.5-flash-lite-001",
+    gen = GeneradorSimulado(
+        "El crédito es del 25 % [05-sla-y-creditos-servicio].",
+        tokens=(100, 50),
+        model_version="google/gemini-3.5-flash-lite-001",
+        coste_usd=0.000155,
+        proveedor_servido="Google",
     )
-    cliente = SimpleNamespace(models=SimpleNamespace(generate_content=lambda **_kw: respuesta_api))
-    gen = GeneradorGemini("gemini-3.5-flash-lite", cliente=cliente)
-    cfg_real = config(gen_modelo="gemini-3.5-flash-lite")
+    cfg_real = config(gen_modelo="google/gemini-3.5-flash-lite")
     casos = [
         {
             "caso_id": "X1",
@@ -138,19 +141,32 @@ def test_generador_gemini_propaga_model_version_a_respuesta_lote_y_manifiesto(si
     ]
 
     r = responder(cfg_real, almacen, Proveedores(prov.embeddings, gen), indice_id, PREGUNTA)
-    assert r.model_version == "gemini-3.5-flash-lite-001"
+    assert r.model_version == "google/gemini-3.5-flash-lite-001"
     assert r.tokens == {"entrada": 100, "salida": 50}
+    assert (r.coste_usd, r.coste_fuente, r.proveedor_servido) == (0.000155, "openrouter", "Google")
 
     carpeta_real = tmp_path / "lote-real"
     ejecutar_lote(cfg_real, almacen, Proveedores(prov.embeddings, gen), indice_id, casos, "test", carpeta_real, run_id="r1")
     fila_real = leer_jsonl(carpeta_real / "respuestas.jsonl", RESPUESTAS)[0]
     manifiesto_real = json.loads((carpeta_real / "manifiesto.json").read_text(encoding="utf-8"))
-    assert fila_real["model_version"] == "gemini-3.5-flash-lite-001"
-    assert manifiesto_real["versiones_modelo"] == ["gemini-3.5-flash-lite-001"]
+    assert fila_real["model_version"] == "google/gemini-3.5-flash-lite-001"
+    assert fila_real["coste_fuente"] == "openrouter"
+    assert manifiesto_real["versiones_modelo"] == ["google/gemini-3.5-flash-lite-001"]
+    assert manifiesto_real["proveedores_servidos"] == ["Google"]
 
     carpeta_doble = tmp_path / "lote-doble"
     ejecutar_lote(config(), almacen, prov, indice_id, casos, "test", carpeta_doble, run_id="r2")
     fila_doble = leer_jsonl(carpeta_doble / "respuestas.jsonl", RESPUESTAS)[0]
     manifiesto_doble = json.loads((carpeta_doble / "manifiesto.json").read_text(encoding="utf-8"))
     assert fila_doble["model_version"] is None
-    assert manifiesto_doble["versiones_modelo"] == []
+    assert manifiesto_doble["versiones_modelo"] == [] and manifiesto_doble["proveedores_servidos"] == []
+    assert manifiesto_doble["coste_embeddings_usd"] is None
+
+
+def test_sin_coste_de_openrouter_se_estima_con_la_tarifa(sistema):
+    almacen, prov, indice_id = sistema
+    gen = GeneradorSimulado("Del 25 % [05-sla-y-creditos-servicio].", tokens=(1000, 200))
+    r = responder(
+        config(gen_modelo="google/gemini-3.5-flash-lite"), almacen, Proveedores(prov.embeddings, gen), indice_id, PREGUNTA
+    )
+    assert (r.coste_usd, r.coste_fuente) == (0.0008, "tarifa")

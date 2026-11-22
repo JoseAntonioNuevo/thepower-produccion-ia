@@ -1,0 +1,351 @@
+{
+  "schema_version": "s19.informe.v1",
+  "run_id": "validacion-A-real-20261122-001314",
+  "creado": "2026-11-22T00:13:47+01:00",
+  "conjunto": "validacion",
+  "huella_conjunto": "38340dbddf01",
+  "perfil": "real",
+  "aviso": null,
+  "config": {
+    "perfil": "real",
+    "embedding_modelo": "openai/text-embedding-3-small",
+    "embedding_dim": 768,
+    "gen_modelo": "google/gemini-4-hydrogen",
+    "chunk_size": 320,
+    "chunk_overlap": 0,
+    "k_fragmentos": 12,
+    "k_documentos": 5,
+    "k_contexto": 4,
+    "umbral_evidencia": 0.5223,
+    "prompt_version": "v1",
+    "config_id": "A",
+    "gen_max_tokens": 2048,
+    "gen_temperatura": 0.0,
+    "gen_proveedores": [],
+    "embedding_proveedores": [],
+    "embedding_enviar_dim": true,
+    "plantilla_documento": "{titulo}\n{texto}",
+    "plantilla_consulta": "{texto}"
+  },
+  "modelos": {
+    "generacion": "google/gemini-4-hydrogen",
+    "embeddings": "openai/text-embedding-3-small"
+  },
+  "versiones": {
+    "psycopg": "3.3.9",
+    "openai": "3.3.0",
+    "langfuse": "5.2.0"
+  },
+  "indice_id": "idx-40c1185fce4c",
+  "n_casos": 8,
+  "n_respondidas": 6,
+  "n_rechazos": 2,
+  "errores_sistema": [],
+  "n_errores_sistema": 0,
+  "recuperacion": {
+    "unidad": "documentos distintos; dos fragmentos del mismo documento = un acierto",
+    "n_preguntas": 5,
+    "de_respondibles": 5,
+    "precision_at_5": 0.24,
+    "precision_techo": 0.24,
+    "recall_at_5": 1.0,
+    "documentos_recuperados_media": 4.8,
+    "denominadores": "precision@5: siempre 5 · recall@5: documentos de referencia de cada pregunta"
+  },
+  "rechazo": {
+    "rechazos_correctos": 2,
+    "de_sin_respuesta": 3,
+    "tasa_rechazos_correctos": 0.6667,
+    "respuestas_indebidas": 1,
+    "abstenciones_incorrectas": 0,
+    "de_respondibles": 5,
+    "tasa_abstenciones_incorrectas": 0.0
+  },
+  "correccion": {
+    "criterio": "datos clave presentes + cita de un documento de referencia (datos/criterios.md)",
+    "aciertos": 4,
+    "de_respondibles": 5,
+    "tasa_aciertos": 0.8,
+    "aviso": "comprobación automática de cadenas; la revisión manual decide los casos dudosos"
+  },
+  "generacion": {
+    "no_evaluables": [
+      {
+        "caso_id": "V05",
+        "metrica": "faithfulness",
+        "motivo": "respuesta_vacia"
+      },
+      {
+        "caso_id": "V06",
+        "metrica": "faithfulness",
+        "motivo": "respuesta_vacia"
+      },
+      {
+        "caso_id": "V05",
+        "metrica": "answer_relevancy",
+        "motivo": "respuesta_vacia"
+      },
+      {
+        "caso_id": "V06",
+        "metrica": "answer_relevancy",
+        "motivo": "respuesta_vacia"
+      }
+    ],
+    "no_aplica_por_rechazo": 2,
+    "faithfulness": {
+      "media": 1.0,
+      "n_evaluables": 4,
+      "n_esperados": 6,
+      "cobertura": 0.6667
+    },
+    "answer_relevancy": {
+      "media": 0.9155,
+      "n_evaluables": 4,
+      "n_esperados": 6,
+      "cobertura": 0.6667
+    },
+    "evaluador": {
+      "modo": "real",
+      "ruta": "openrouter",
+      "llm": "anthropic/claude-opus-5.5",
+      "embeddings": "openai/text-embedding-3-small",
+      "ragas": "0.4.3",
+      "langchain_community": "0.3.31",
+      "python": "3.12.16",
+      "aviso": null,
+      "ajustes": {
+        "llm_proveedores": [],
+        "embedding_proveedores": [],
+        "llm_extra": {},
+        "quitar_parametros": [
+          "temperature",
+          "top_p"
+        ],
+        "max_tokens": 4096
+      }
+    },
+    "aviso": "fidelidad al contexto no demuestra que la respuesta sea correcta"
+  },
+  "operacion": {
+    "latencia_ms_mediana": 2450.0,
+    "latencia_ms_maxima": 11622.6,
+    "sistema": {
+      "llamadas": {
+        "embeddings": 8,
+        "generacion": 6
+      },
+      "tokens_entrada": 2386,
+      "tokens_salida": 5362,
+      "coste_usd_estimado": 0.043794,
+      "coste_fuente": "openrouter"
+    },
+    "evaluador": {
+      "llamadas_llm": 20,
+      "llamadas_embeddings": 8,
+      "tokens_entrada": 22557,
+      "tokens_salida": 1733,
+      "coste_usd_estimado": 0.12489524,
+      "segundos": 32.68
+    },
+    "produccion": {
+      "consultas": 8,
+      "latencia_ms_p50": 2450.0,
+      "latencia_ms_p95": 11622.6,
+      "tasa_error": 0.0,
+      "tasa_rechazo": 0.25,
+      "rechazos_sin_llamar_al_modelo": 2,
+      "llamadas_al_modelo": 6,
+      "coste_usd_por_consulta": 0.00547464,
+      "coste_usd_por_1000_consultas": 5.4746,
+      "peso_del_juez": 0.7404,
+      "nota": "p95 por rango más cercano; coste = generación + embeddings de las preguntas; el juez va aparte"
+    }
+  },
+  "casos": [
+    {
+      "caso_id": "V01",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "02-autenticacion-mtls-tokens",
+        "04-almacenamiento-y-cifrado-kms",
+        "01-arquitectura-aethercloud",
+        "08-residencia-datos-y-rgpd",
+        "09-observabilidad-opentelemetry"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V02",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "03-limites-y-cuotas-api",
+        "09-observabilidad-opentelemetry",
+        "10-despliegues-canary-y-rollback",
+        "06-respuesta-a-incidentes",
+        "08-residencia-datos-y-rgpd"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V03",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "07-facturacion-y-planes",
+        "08-residencia-datos-y-rgpd",
+        "06-respuesta-a-incidentes",
+        "02-autenticacion-mtls-tokens"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V04",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "06-respuesta-a-incidentes",
+        "08-residencia-datos-y-rgpd",
+        "09-observabilidad-opentelemetry",
+        "05-sla-y-creditos-servicio",
+        "10-despliegues-canary-y-rollback"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": 0.2,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.2,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": true
+    },
+    {
+      "caso_id": "V05",
+      "respondible": true,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "04-almacenamiento-y-cifrado-kms",
+        "07-facturacion-y-planes",
+        "05-sla-y-creditos-servicio",
+        "08-residencia-datos-y-rgpd"
+      ],
+      "n_documentos_recuperados": 4,
+      "precision_at_5": 0.4,
+      "recall_at_5": 1.0,
+      "precision_techo": 0.4,
+      "rechazo_correcto": null,
+      "abstencion_incorrecta": false,
+      "respuesta_indebida": null,
+      "acierto": false,
+      "datos_clave_ausentes": [
+        "100 GiB",
+        "AES-256-GCM"
+      ],
+      "cita_documento_relevante": false
+    },
+    {
+      "caso_id": "V06",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": false,
+      "documentos_recuperados": [
+        "01-arquitectura-aethercloud",
+        "08-residencia-datos-y-rgpd",
+        "07-facturacion-y-planes",
+        "05-sla-y-creditos-servicio",
+        "06-respuesta-a-incidentes"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": false,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": true,
+      "acierto": false,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "V07",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "06-respuesta-a-incidentes",
+        "07-facturacion-y-planes",
+        "02-autenticacion-mtls-tokens",
+        "08-residencia-datos-y-rgpd"
+      ],
+      "n_documentos_recuperados": 5,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    },
+    {
+      "caso_id": "V08",
+      "respondible": false,
+      "error_sistema": null,
+      "rechazo": true,
+      "documentos_recuperados": [
+        "05-sla-y-creditos-servicio",
+        "03-limites-y-cuotas-api",
+        "07-facturacion-y-planes",
+        "09-observabilidad-opentelemetry"
+      ],
+      "n_documentos_recuperados": 4,
+      "precision_at_5": null,
+      "recall_at_5": null,
+      "precision_techo": null,
+      "rechazo_correcto": true,
+      "abstencion_incorrecta": null,
+      "respuesta_indebida": false,
+      "acierto": true,
+      "datos_clave_ausentes": [],
+      "cita_documento_relevante": null
+    }
+  ]
+}

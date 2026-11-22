@@ -16,6 +16,11 @@ Conjunto `test` (20 casos, huella `18d20c777136`) · configuración `B` · perfi
 | Operación | latencia mediana | 9,8 ms | 20 consultas |
 | Operación | coste del sistema | sin dato USD | estimación |
 | Operación | errores del sistema | 0 | 20 casos |
+| Producción | latencia p95 | 10,7 ms | 20 consultas (máxima 17,9 ms) |
+| Producción | tasa de error | 0,00 | 0/20 consultas |
+| Producción | tasa de rechazo | 0,60 | 12 sin llamar al modelo · 8 llamadas al modelo |
+| Producción | coste por consulta | sin dato USD | generación + embeddings · 1.000 consultas ≈ sin dato USD |
+| Producción | peso del juez en el coste | sin dato | evaluar frente a responder |
 
 ## Casos fallados (se conservan todos)
 

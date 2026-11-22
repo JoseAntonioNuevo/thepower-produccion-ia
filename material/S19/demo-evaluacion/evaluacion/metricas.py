@@ -60,6 +60,19 @@ def mediana(valores: list[float]) -> float | None:
     return round(statistics.median(finitos), 1) if finitos else None
 
 
+def percentil(valores: list[float], p: float) -> float | None:
+    """Percentil por rango más cercano: el valor que deja por debajo el p % de las consultas.
+
+    Con 20 consultas, p95 es la 19.ª más lenta: una sola consulta lenta puede no moverlo, dos sí.
+    Se usa este método (y no una interpolación) para que el valor sea siempre una latencia medida.
+    """
+    finitos = sorted(v for v in valores if v is not None and math.isfinite(v))
+    if not finitos:
+        return None
+    rango = max(1, math.ceil(p / 100 * len(finitos)))
+    return round(finitos[rango - 1], 1)
+
+
 def contiene_dato(texto: str, dato: str) -> bool:
     """¿Aparece el dato clave en la respuesta? Sin tildes ni mayúsculas, y sin confundir 10 con 100."""
     t, d = normalizar(texto), normalizar(dato)

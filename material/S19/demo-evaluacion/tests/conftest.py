@@ -32,14 +32,23 @@ class GeneradorSimulado:
 
     nombre = "simulado"
 
-    def __init__(self, texto="", error=None, tokens=(None, None), model_version=None):
-        self.texto, self.error, self.tokens, self.model_version, self.llamadas = texto, error, tokens, model_version, 0
+    def __init__(
+        self, texto="", error=None, tokens=(None, None), model_version=None, coste_usd=None, proveedor_servido=None
+    ):
+        self.texto, self.error, self.tokens, self.llamadas = texto, error, tokens, 0
+        self.model_version, self.coste_usd, self.proveedor_servido = model_version, coste_usd, proveedor_servido
 
     def generar(self, pregunta, contextos, prompt_version):
         self.llamadas += 1
         if self.error:
             raise self.error
-        return Generacion(self.texto, *self.tokens, model_version=self.model_version)
+        return Generacion(
+            self.texto,
+            *self.tokens,
+            model_version=self.model_version,
+            coste_usd=self.coste_usd,
+            proveedor_servido=self.proveedor_servido,
+        )
 
 
 @pytest.fixture

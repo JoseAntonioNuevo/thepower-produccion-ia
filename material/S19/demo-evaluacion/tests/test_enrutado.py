@@ -58,3 +58,40 @@ def test_el_limite_de_intentos_es_obligatorio(cfg, sistema):
     almacen, prov, indice_id = sistema
     with pytest.raises(ValueError):
         crag(cfg, almacen, prov, indice_id, "¿hola?", max_intentos=0)
+
+
+def test_la_trayectoria_del_grafo_queda_registrada(sistema):
+    almacen, prov, indice_id = sistema
+    t = crag(config(umbral_evidencia=0.99), almacen, prov, indice_id, "¿Cuál es el horario de la cafetería?", max_intentos=3)
+    assert t.ruta == ["recuperar", "reformular", "recuperar", "reformular", "recuperar", "rechazar"]
+
+
+def test_con_evidencia_la_trayectoria_es_recuperar_y_responder(cfg, sistema):
+    almacen, prov, indice_id = sistema
+    t = crag(cfg, almacen, prov, indice_id, "¿Qué versión de TLS exigen las pasarelas perimetrales?")
+    assert t.ruta == ["recuperar", "responder"]
+
+
+def test_recursion_limit_corta_una_regla_que_no_deja_de_reformular(sistema):
+    """Red de seguridad del framework: aunque la regla falle, el agente no gasta sin límite."""
+    from langgraph.errors import GraphRecursionError
+
+    almacen, prov, indice_id = sistema
+    consultas = []
+
+    def reformular(c):
+        consultas.append(c)
+        return c
+
+    with pytest.raises(GraphRecursionError):
+        crag(
+            config(umbral_evidencia=0.99),
+            almacen,
+            prov,
+            indice_id,
+            "¿Cuál es el horario de la cafetería?",
+            reformular=reformular,
+            max_intentos=2,
+            regla=lambda *_: "reformular",  # regla rota: nunca decide parar
+        )
+    assert len(consultas) <= 3  # 2 intentos → como mucho 5 pasos: el corte llega enseguida

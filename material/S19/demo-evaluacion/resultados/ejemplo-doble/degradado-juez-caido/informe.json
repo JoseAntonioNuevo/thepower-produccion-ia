@@ -138,6 +138,19 @@
       "tokens_salida": null,
       "coste_usd_estimado": null,
       "segundos": 0.0
+    },
+    "produccion": {
+      "consultas": 8,
+      "latencia_ms_p50": 9.8,
+      "latencia_ms_p95": 14.1,
+      "tasa_error": 0.0,
+      "tasa_rechazo": 0.25,
+      "rechazos_sin_llamar_al_modelo": 2,
+      "llamadas_al_modelo": 6,
+      "coste_usd_por_consulta": null,
+      "coste_usd_por_1000_consultas": null,
+      "peso_del_juez": null,
+      "nota": "p95 por rango más cercano; coste = generación + embeddings de las preguntas; el juez va aparte"
     }
   },
   "casos": [

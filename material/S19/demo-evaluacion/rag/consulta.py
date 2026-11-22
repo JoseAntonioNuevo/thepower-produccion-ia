@@ -1,16 +1,13 @@
-"""Consulta: recuperar, decidir si hay evidencia, generar con fuentes o rechazar."""
+"""Consulta: piezas para recuperar, citar y responder. El recorrido es el grafo de `rag/grafo.py`."""
 
 from __future__ import annotations
 
 import re
-import time
 from dataclasses import asdict, dataclass, field
 
 from rag.almacen import ErrorIndice, Hallazgo
 from rag.config import Config
-from rag.costes import coste_usd, desglose_coste_usd
-from rag.observabilidad import TrazaNula
-from rag.proveedores import NO_CONSTA, componer_prompt
+from rag.costes import desglose_coste_usd
 
 MENSAJE_RECHAZO = "No consta en la documentación de AetherCloud."
 _CITA = re.compile(r"\[(\d{2}-[a-z0-9-]+)\]")
@@ -52,8 +49,10 @@ class Respuesta:
     mejor_similitud: float | None
     latencia_ms: dict = field(default_factory=dict)
     tokens: dict = field(default_factory=dict)
-    coste_usd: float | None = None  # estimación con tarifas.json; None si faltan tokens
-    model_version: str | None = None  # versión de modelo devuelta por la API; None en perfil doble
+    coste_usd: float | None = None  # coste de la generación; None si no se conoce (nunca 0 inventado)
+    model_version: str | None = None  # modelo exacto que devolvió la API; None en perfil doble
+    coste_fuente: str | None = None  # "openrouter" (cobrado) · "tarifa" (estimado) · "sin_llamada"
+    proveedor_servido: str | None = None  # quién ejecutó el modelo dentro de OpenRouter
     avisos: list[str] = field(default_factory=list)
 
     def como_dict(self) -> dict:
@@ -82,105 +81,37 @@ def extraer_fuentes(texto: str, permitidas: list[str]) -> tuple[list[str], list[
     return [c for c in citadas if c in permitidas], [c for c in citadas if c not in permitidas]
 
 
-def responder(cfg: Config, almacen, proveedores, indice_id: str, pregunta: str, traza=None) -> Respuesta:
-    """Responde una pregunta. Los fallos del proveedor NO se capturan aquí: suben al llamante.
+def responder(cfg: Config, almacen, proveedores, indice_id: str, pregunta: str, traza=None, al_paso=None) -> Respuesta:
+    """Responde una pregunta ejecutando el grafo de `rag/grafo.py`.
 
-    `traza` es opcional: con Langfuse activo, cada paso queda como observación de la traza.
+    recuperar → (¿evidencia suficiente?) → generar → comprobar, o bien → rechazo_previo.
+    Los fallos del proveedor NO se capturan aquí: suben al llamante. `traza` es opcional:
+    con Langfuse activo, cada paso queda como observación de la traza. `al_paso` recibe cada
+    paso del grafo al terminar (lo usa la TUI); no cambia el resultado.
     """
-    traza = traza or TrazaNula()
-    t0 = time.perf_counter()
-    with traza.paso("recuperacion", "retriever", input=pregunta) as paso:
-        rec = recuperar(cfg, almacen, proveedores.embeddings, indice_id, pregunta)
-        paso.update(
-            output={"documentos": rec.documentos, "mejor_similitud": rec.mejor_similitud},
-            metadata={"embedding_modelo": cfg.embedding_modelo, "k_fragmentos": cfg.k_fragmentos},
-        )
-    t1 = time.perf_counter()
-    base = {
-        "pregunta": pregunta,
-        "documentos_recuperados": rec.documentos,
-        "fragmentos_recuperados": [h.fragmento_id for h in rec.hallazgos],
-        "mejor_similitud": round(rec.mejor_similitud, 4) if rec.hallazgos else None,
-    }
-    # 1) Rechazo previo: sin evidencia suficiente no se llama al generador (ni se paga).
-    if not rec.hallazgos or rec.mejor_similitud < cfg.umbral_evidencia:
-        return Respuesta(
-            texto=MENSAJE_RECHAZO,
-            rechazo=True,
-            motivo_rechazo="evidencia_insuficiente",
-            fuentes=[],
-            fuentes_invalidas=[],
-            contextos=[],
-            latencia_ms={"recuperacion": _ms(t0, t1), "generacion": 0.0, "total": _ms(t0, t1)},
-            tokens={"entrada": 0, "salida": 0},
-            coste_usd=0.0,
-            **base,
-        )
-    contexto = rec.hallazgos[: cfg.k_contexto]
-    pares = [(h.documento_id, h.contenido) for h in contexto]
-    with traza.paso(
-        "generacion",
-        "generation",
-        model=cfg.gen_modelo,
-        input=componer_prompt(pregunta, pares),
-        model_parameters={"prompt_version": cfg.prompt_version, "temperature": 0},
-    ) as paso:
-        gen = proveedores.generador.generar(pregunta, pares, cfg.prompt_version)
-        conocidos = gen.tokens_entrada is not None and gen.tokens_salida is not None
-        desglose = desglose_coste_usd(cfg.gen_modelo, gen.tokens_entrada, gen.tokens_salida)
-        paso.update(
-            output=gen.texto,
-            # Sin tokens no hay coste: Langfuse no los estima a partir del texto.
-            usage_details=({"input": gen.tokens_entrada, "output": gen.tokens_salida} if conocidos else None),
-            cost_details=desglose,
-            metadata={"model_version": gen.model_version} if gen.model_version else None,
-        )
-    t2 = time.perf_counter()
-    contextos = [
-        {
-            "fragmento_id": h.fragmento_id,
-            "documento_id": h.documento_id,
-            "contenido": h.contenido,
-            "similitud": round(h.similitud, 4),
-        }
-        for h in contexto
-    ]
-    comun = {
-        "contextos": contextos,
-        "latencia_ms": {"recuperacion": _ms(t0, t1), "generacion": _ms(t1, t2), "total": _ms(t0, t2)},
-        "tokens": {"entrada": gen.tokens_entrada, "salida": gen.tokens_salida},
-        "coste_usd": coste_usd(cfg.gen_modelo, gen.tokens_entrada, gen.tokens_salida),
-        "model_version": gen.model_version,
-        **base,
-    }
-    # 2) Rechazo del generador: leyó el contexto y declaró que no basta.
-    if gen.texto.strip().startswith(NO_CONSTA):
-        return Respuesta(
-            texto=MENSAJE_RECHAZO,
-            rechazo=True,
-            motivo_rechazo="generador_sin_respuesta",
-            fuentes=[],
-            fuentes_invalidas=[],
-            **comun,
-        )
-    permitidas = documentos_distintos([h.documento_id for h in contexto], 99)
-    fuentes, invalidas = extraer_fuentes(gen.texto, permitidas)
-    avisos = []
-    if not gen.texto.strip():
-        avisos.append("respuesta_vacia")
-    if not fuentes:
-        avisos.append("sin_fuentes")  # una respuesta sin fuente comprobable no cumple el formato
-    if invalidas:
-        avisos.append("fuentes_fuera_del_contexto")
-    return Respuesta(
-        texto=gen.texto.strip(),
-        rechazo=False,
-        motivo_rechazo=None,
-        fuentes=fuentes,
-        fuentes_invalidas=invalidas,
-        avisos=avisos,
-        **comun,
-    )
+    from rag.grafo import ejecutar_consulta  # import local: el grafo usa las piezas de este módulo
+
+    return ejecutar_consulta(cfg, almacen, proveedores, indice_id, pregunta, traza, al_paso)["respuesta"]
+
+
+def _parametros(cfg: Config) -> dict:
+    """Parámetros de generación que se registran en la traza (solo los que se envían de verdad)."""
+    datos = {"prompt_version": cfg.prompt_version}
+    if cfg.gen_temperatura is not None:
+        datos["temperature"] = cfg.gen_temperatura
+    if cfg.gen_max_tokens is not None:
+        datos["max_tokens"] = cfg.gen_max_tokens
+    return datos
+
+
+def _coste(modelo: str, gen) -> tuple[float | None, str | None, dict | None]:
+    """(coste, fuente, desglose para Langfuse). Primero lo cobrado; si falta, la tarifa; si no, nada."""
+    if gen.coste_usd is not None:
+        return round(gen.coste_usd, 8), "openrouter", {"total": round(gen.coste_usd, 8)}
+    desglose = desglose_coste_usd(modelo, gen.tokens_entrada, gen.tokens_salida)
+    if desglose is None:
+        return None, None, None
+    return desglose["total"], "tarifa", desglose
 
 
 def _ms(a: float, b: float) -> float:

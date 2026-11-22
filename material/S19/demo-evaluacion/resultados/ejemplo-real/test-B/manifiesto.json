@@ -1,0 +1,52 @@
+{
+  "run_id": "test-B-real-20261122-003930",
+  "creado": "2026-11-22T00:40:01+01:00",
+  "conjunto": "test",
+  "huella_conjunto": "18d20c777136",
+  "n_casos": 20,
+  "indice_id": "idx-de76af5553b5",
+  "config": {
+    "perfil": "real",
+    "embedding_modelo": "openai/text-embedding-3-small",
+    "embedding_dim": 768,
+    "gen_modelo": "google/gemini-4-hydrogen",
+    "chunk_size": 900,
+    "chunk_overlap": 0,
+    "k_fragmentos": 12,
+    "k_documentos": 5,
+    "k_contexto": 4,
+    "umbral_evidencia": 0.5223,
+    "prompt_version": "v1",
+    "config_id": "B",
+    "gen_max_tokens": 2048,
+    "gen_temperatura": 0.0,
+    "gen_proveedores": [],
+    "gen_extra": "{\"reasoning\": {\"effort\": \"low\"}}",
+    "embedding_proveedores": [],
+    "embedding_enviar_dim": true,
+    "plantilla_documento": "{titulo}\n{texto}",
+    "plantilla_consulta": "{texto}"
+  },
+  "modelos": {
+    "generacion": "google/gemini-4-hydrogen",
+    "embeddings": "openai/text-embedding-3-small"
+  },
+  "versiones_modelo": [
+    "google/gemini-4-hydrogen"
+  ],
+  "proveedores_servidos": [
+    "Google AI Studio"
+  ],
+  "versiones": {
+    "psycopg": "3.3.9",
+    "openai": "3.3.0",
+    "langfuse": "5.2.0"
+  },
+  "llamadas": {
+    "embeddings": 20,
+    "generacion": 15
+  },
+  "coste_embeddings_usd": 9.52e-06,
+  "langfuse": false,
+  "aviso": null
+}

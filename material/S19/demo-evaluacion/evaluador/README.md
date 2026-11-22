@@ -18,15 +18,38 @@ RAG (s19.py lote) ──► respuestas.jsonl ──► evaluar.py ──► punt
 uv sync
 uv run python evaluar.py ../resultados/mi-test-A                    # juez doble, sin coste
 uv run python evaluar.py ../resultados/mi-test-A --modo real --execute   # juez de pago
-uv run pytest                                                        # 15 tests, sin red
+uv run pytest                                                        # 19 tests, sin red
 ```
 
 | Modo | Métricas | Juez y embeddings | Sirve para |
 |---|---|---|---|
 | `doble` | Clases reales de `ragas.metrics.collections` | Dobles locales deterministas | Probar el recorrido: formato, no evaluables, cobertura |
-| `real` | Las mismas | Gemini (de pago) | Medir |
+| `real` | Las mismas | Modelos de OpenRouter elegidos en `../.env` (de pago) | Medir |
 
-El modo `real` **nunca** cae al doble: sin clave o sin `--execute` termina con error.
+El modo `real` **nunca** cae al doble: sin `OPENROUTER_API_KEY` o sin `--execute` termina con error.
+
+## Juez real: siempre OpenRouter
+
+El juez y sus embeddings se eligen en `../.env` y se cambian sin tocar el código:
+
+| Variable | Para qué | Por defecto |
+|---|---|---|
+| `S19_EVAL_LLM_MODEL` | Modelo juez | `anthropic/claude-opus-5.5` |
+| `S19_EVAL_EMBEDDING_MODEL` | Embeddings de AnswerRelevancy | `openai/text-embedding-3-small` |
+| `S19_EVAL_MAX_TOKENS` | Máximo de salida por llamada | 4096 |
+| `S19_EVAL_LLM_PROVEEDORES` · `S19_EVAL_EMBEDDING_PROVEEDORES` | Orden fijo de proveedores de OpenRouter, sin cambios automáticos | vacío |
+| `S19_EVAL_LLM_EXTRA` | Campos extra en JSON en cada petición al juez | vacío |
+| `S19_EVAL_QUITAR_PARAMETROS` | Parámetros que se quitan, además de los que el catálogo dice que el juez no admite (Ragas siempre envía `temperature` y `top_p`; Opus 5.5 no admite ninguno y se quitan solos) | vacío |
+
+Ragas recibe un `AsyncOpenAI` apuntando a OpenRouter. Como Ragas construye las peticiones por
+dentro, un transporte HTTP (`TransporteOpenRouter`) añade el orden de proveedores y los campos
+extra, y quita los parámetros indicados. Todos estos ajustes forman parte de la identidad del
+evaluador: dos ejecuciones solo se comparan si los comparten.
+
+Conviene un juez de **otra familia** que el generador (por defecto, Anthropic juzga a Google)
+y el **mismo** juez en las dos ejecuciones que se comparan. El adaptador de Ragas pide la
+salida en JSON (`response_format`): `python s19.py preflight` avisa si el catálogo de
+OpenRouter dice que el modelo no lo admite.
 
 ## Lo que pide el enunciado y lo que hay en ragas 0.4.3
 
@@ -34,7 +57,7 @@ Comprobado el 17/11/2026 instalando las versiones fijadas e inspeccionando el pa
 
 | Enunciado | Encontrado | Estado |
 |---|---|---|
-| `ragas==0.4.3`, `langchain-community==0.3.31` | Instalados; el resto queda en `uv.lock` (107 paquetes) | Coincide |
+| `ragas==0.4.3`, `langchain-community==0.3.31` | Instalados; el resto queda en `uv.lock` (100 paquetes) | Coincide |
 | `ragas.metrics.collections` con `Faithfulness` y `AnswerRelevancy` | Existen | Coincide |
 | `Faithfulness.ascore(user_input, response, retrieved_contexts)` | Firma exacta | Coincide |
 | Puntuación en `.value` | `MetricResult.value` | Coincide |
@@ -47,14 +70,12 @@ Tres cosas que el enunciado no dice y conviene saber:
    genera a partir de la respuesta. Pasarle contextos da `TypeError`.
 2. **La llamada de la guía «Ragas con Gemini» falla con `ascore`.**
    `llm_factory("…", provider="google", client=genai.Client(...))` devuelve un cliente
-   síncrono y `ascore` lanza `TypeError: Cannot use agenerate() with a synchronous client`.
-   Lo reproduce `tests/test_evaluador.py::test_la_ruta_sincrona_de_la_guia_falla_en_ascore`.
-   Este proyecto usa dos rutas asíncronas (`S19_EVAL_RUTA`):
-   - `openai_compat` (por defecto): `AsyncOpenAI` contra el endpoint de Gemini compatible con
-     OpenAI. Permite contar tokens. **Es una sustitución explícita respecto a la guía.**
-   - `google_genai`: `instructor.from_genai(client, use_async=True)` + `InstructorLLM`. No
-     expone tokens: el coste del juez queda «sin dato».
-   Ninguna de las dos se ha ejecutado contra la API real (pendiente de autorización de gasto).
+   síncrono y `ascore` lanza `TypeError: Cannot use agenerate() with a synchronous client`
+   (comprobado el 17/11/2026). Por eso el juez usa siempre un cliente **asíncrono**
+   compatible con OpenAI, ahora contra OpenRouter: también puede juzgar Gemini
+   (`google/gemini-…`) sin instalar el SDK de Google. **Es una sustitución explícita respecto a
+   la guía.** Ejecutado contra la API real el 22/11/2026 con Claude Opus 5.5 como juez: puntuó
+   todas las respuestas emitidas (cobertura 1,00 en test) y su coste medido fue 0,43–0,46 USD por test de 20 casos.
 3. **Ragas envía telemetría de uso** salvo que `RAGAS_DO_NOT_TRACK=true`. `evaluar.py` la desactiva.
 
 Además, Faithfulness devuelve **NaN** cuando el juez no extrae ninguna afirmación, y lanza
@@ -81,6 +102,8 @@ Mide si la respuesta habla de lo que se preguntó. **No** mide si lo que dice es
 
 ## Consumo del juez
 
-Ragas no devuelve tokens. En la ruta `openai_compat`, `ContadorUso` lee el campo `usage` de
-cada respuesta HTTP y lo reparte por caso y métrica. Va en `puntuaciones.jsonl` → `consumo`,
-separado del consumo del RAG. Si falta `usage`, los tokens quedan en `null`: desconocido no es cero.
+Ragas no devuelve tokens ni coste. `ContadorUso` lee el campo `usage` de cada respuesta HTTP
+de OpenRouter (tokens y `cost`, lo cobrado, incluidos los embeddings del juez) y lo reparte por
+caso y métrica. Va en `puntuaciones.jsonl` → `consumo`, separado del consumo del RAG, con
+`coste_fuente: "openrouter"`. Si alguna respuesta llega sin `cost`, se estima con
+`../tarifas.json` (`"tarifa"`); si faltan tokens, quedan en `null`: desconocido no es cero.

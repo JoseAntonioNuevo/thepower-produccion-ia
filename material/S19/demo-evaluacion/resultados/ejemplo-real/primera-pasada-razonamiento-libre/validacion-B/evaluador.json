@@ -1,0 +1,42 @@
+{
+  "evaluador": {
+    "modo": "real",
+    "ruta": "openrouter",
+    "llm": "anthropic/claude-opus-5.5",
+    "embeddings": "openai/text-embedding-3-small",
+    "ragas": "0.4.3",
+    "langchain_community": "0.3.31",
+    "python": "3.12.16",
+    "aviso": null,
+    "ajustes": {
+      "llm_proveedores": [],
+      "embedding_proveedores": [],
+      "llm_extra": {},
+      "quitar_parametros": [
+        "temperature",
+        "top_p"
+      ],
+      "max_tokens": 4096
+    }
+  },
+  "resumen": {
+    "faithfulness": {
+      "evaluables": 4,
+      "esperados": 4,
+      "cobertura": 1.0,
+      "media": 1.0,
+      "no_evaluables_por_motivo": {
+        "rechazo_sin_respuesta": 4
+      }
+    },
+    "answer_relevancy": {
+      "evaluables": 4,
+      "esperados": 4,
+      "cobertura": 1.0,
+      "media": 0.8677,
+      "no_evaluables_por_motivo": {
+        "rechazo_sin_respuesta": 4
+      }
+    }
+  }
+}

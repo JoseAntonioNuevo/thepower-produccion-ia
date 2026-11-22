@@ -9,5 +9,6 @@ __pycache__/
 # Resultados de ejecuciones propias. Los ejemplos rotulados sí se versionan.
 resultados/*
 !resultados/ejemplo-doble/
+!resultados/ejemplo-real/
 !resultados/README.md
 .DS_Store

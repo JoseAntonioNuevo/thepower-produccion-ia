@@ -171,7 +171,7 @@ def s15_aislado(deck):
     img(sl, "postgresql.png", 55, 138, w=28, h=28)
     text(sl, 92, 138, 205, 12, "ENTORNO DEL RAG", size=9, color=BLUE, bold=True)
     text(sl, 92, 152, 205, 16, "demo-evaluacion/.venv", size=10, font=MONO, color=TITLE, bold=True, check=False)
-    bullets(sl, 55, 178, 242, 96, ["psycopg, google-genai, langfuse", "53 paquetes bloqueados en uv.lock",
+    bullets(sl, 55, 178, 242, 96, ["psycopg, openai, langfuse", "46 paquetes bloqueados en uv.lock",
                                     "python s19.py lote · informe"], size=9.5, mark_color=BLUE)
     # archivos
     for y, nombre, ver, col, direc in [(138, "respuestas.jsonl", "s19.respuestas.v1", MINT, "→"),
@@ -189,7 +189,7 @@ def s15_aislado(deck):
     img(sl, "ragas-tile.png", 667, 138, w=28, h=28)
     text(sl, 704, 138, 205, 12, "ENTORNO DEL EVALUADOR", size=9, color=AMBER, bold=True)
     text(sl, 704, 152, 205, 16, "evaluador/.venv", size=10, font=MONO, color=TITLE, bold=True, check=False)
-    bullets(sl, 667, 178, 242, 96, ["ragas==0.4.3, langchain-community==0.3.31", "107 paquetes bloqueados en su uv.lock",
+    bullets(sl, 667, 178, 242, 96, ["ragas==0.4.3, langchain-community==0.3.31", "100 paquetes bloqueados en su uv.lock",
                                      "python evaluar.py <carpeta>"], size=9.5, mark_color=AMBER)
     # código
     tag(sl, 43, 288, "codigo")
@@ -214,17 +214,17 @@ def s15_aislado(deck):
         {"runs": [("AnswerRelevancy ", {"bold": True, "color": TITLE}),
                   ("no acepta retrieved_contexts: solo pregunta y respuesta.", {})], "space": 5},
         {"runs": [("Guía «Ragas con Gemini». ", {"bold": True, "color": TITLE}),
-                  ("Su cliente síncrono falla en ascore con TypeError. La demo usa un cliente asíncrono y lo declara.", {})], "space": 5},
+                  ("Su cliente síncrono falla en ascore con TypeError. La demo usa un cliente asíncrono, vía OpenRouter, y lo declara.", {})], "space": 5},
         {"runs": [("Telemetría. ", {"bold": True, "color": TITLE}),
                   ("Ragas envía datos de uso salvo RAGAS_DO_NOT_TRACK=true.", {})]},
     ], size=9.5, color=TEXT, space=5)
     takeaway(sl, "Aislar el evaluador permite actualizarlo o sustituirlo sin tocar el sistema evaluado, y deja escrito con qué versión se midió.",
              label="Idea guía")
     footer(sl, block=3)
-    notes(sl, """19:13–19:15. Explicar por qué se aísla: Ragas arrastra más de cien dependencias; mezcladas con las del RAG, actualizar el evaluador podría cambiar el sistema evaluado. Cada entorno tiene su pyproject.toml y su uv.lock. Solo comparten dos archivos JSONL con schema_version; si el formato cambia, el lector antiguo falla con un mensaje claro. Leer el código: es exactamente lo que indica el enunciado (ragas.metrics.collections, Faithfulness.ascore con user_input, response y retrieved_contexts, lectura en .value). Comentar los hallazgos al instalar las versiones fijadas: AnswerRelevancy no recibe contextos; la llamada de la guía «Ragas con Gemini» devuelve un cliente síncrono y ascore falla con TypeError (hay un test que lo reproduce sin red); Ragas envía telemetría salvo que se desactive. Las rutas reales del juez no se han ejecutado contra la API: quedan pendientes de autorización de gasto.
+    notes(sl, """19:13–19:15. Explicar por qué se aísla: Ragas arrastra más de cien dependencias; mezcladas con las del RAG, actualizar el evaluador podría cambiar el sistema evaluado. Cada entorno tiene su pyproject.toml y su uv.lock. Solo comparten dos archivos JSONL con schema_version; si el formato cambia, el lector antiguo falla con un mensaje claro. Leer el código: es exactamente lo que indica el enunciado (ragas.metrics.collections, Faithfulness.ascore con user_input, response y retrieved_contexts, lectura en .value). Comentar los hallazgos al instalar las versiones fijadas: AnswerRelevancy no recibe contextos; la llamada de la guía «Ragas con Gemini» devuelve un cliente síncrono y ascore falla con TypeError (comprobado el 17/11/2026); por eso el juez usa un cliente asíncrono compatible con OpenAI contra OpenRouter, que también puede usar modelos de Gemini. Ragas envía telemetría salvo que se desactive. El juez real se elige en .env; el 22/11/2026 se ejecutó con Claude Opus 5.5 y puntuó todas las respuestas emitidas del test.
 QUÉ ABRIR: evaluador/pyproject.toml y evaluador/README.md.
 PREGUNTA: ¿qué ganamos al intercambiar archivos en vez de importar el evaluador como una librería más?
-Fuentes: """ + F_RAGAS + """; guía «Ragas con Gemini» (docs.ragas.io, consultada el 16/11/2026); evaluador/tests/test_evaluador.py.""")
+Fuentes: """ + F_RAGAS + """; guía «Ragas con Gemini» (docs.ragas.io, consultada el 16/11/2026); evaluador/README.md.""")
     return sl
 
 
@@ -341,7 +341,7 @@ def s18_vivo3(deck):
     ], pitch=44, size=14.5)
     band_s(sl, "Las clases de Ragas son las reales; el juez es un doble. Con juez real: evaluar.py --modo real --execute.")
     footer_s(sl)
-    notes(sl, """19:19–19:24. EN VIVO 3. 1) Entrar en evaluador/ y ejecutar evaluar.py sobre la carpeta de validación. La primera importación de Ragas tarda; haberla ejecutado antes de clase. Leer el aviso: el juez es un doble léxico; las clases Faithfulness y AnswerRelevancy sí son las de ragas 0.4.3. 2) Abrir puntuaciones.jsonl y enseñar una fila evaluable (valor, evaluador, consumo) y una con motivo rechazo_sin_respuesta. 3) Volver a la raíz y repetir informe: ahora aparecen media y cobertura de las dos métricas. 4) Abrir el CSV de revisión de ejemplo y leer T16. Decir que el modo real exige clave y --execute, y que no se ha ejecutado.
+    notes(sl, """19:19–19:24. EN VIVO 3. 1) Entrar en evaluador/ y ejecutar evaluar.py sobre la carpeta de validación. La primera importación de Ragas tarda; haberla ejecutado antes de clase. Leer el aviso: el juez es un doble léxico; las clases Faithfulness y AnswerRelevancy sí son las de ragas 0.4.3. 2) Abrir puntuaciones.jsonl y enseñar una fila evaluable (valor, evaluador, consumo) y una con motivo rechazo_sin_respuesta. 3) Volver a la raíz y repetir informe: ahora aparecen media y cobertura de las dos métricas. 4) Abrir el CSV de revisión de ejemplo y leer T16. Decir que el modo real exige clave y --execute; se ejecutó el 22/11/2026 con Claude Opus 5.5 (resultados/ejemplo-real).
 QUÉ ABRIR: terminal; resultados/mi-val-A/puntuaciones.jsonl; resultados/ejemplo-doble/test-A/revision-manual-EJEMPLO-rellena.csv.
 PREGUNTA: ¿por qué los dos rechazos no bajan la cobertura?
 Fuentes: salida real de evaluar.py con el juez doble (resultados/ejemplo-doble/validacion-A, 17/11/2026).""")
@@ -356,7 +356,7 @@ def s19_piramide(deck):
     capas = [(150, "Revisión humana", "muestreo · minutos por caso", CORAL, CORAL_BG),
              (250, "Evaluación con modelo real", "@pytest.mark.llm · de pago · antes de desplegar", AMBER, AMBER_BG),
              (350, "Integración con servicios locales", "@pytest.mark.db · pgvector en Docker · segundos", VIOLET, VIOLET_BG),
-             (450, "Tests deterministas con dobles", "73 en la demo · milisegundos · en cada cambio", MINT, GREEN_BG)]
+             (450, "Tests deterministas con dobles", "131 en la demo · milisegundos · en cada cambio", MINT, GREEN_BG)]
     cx = 268
     for i, (w, t, d, col, fill) in enumerate(capas):
         y = 132 + i * 82
@@ -381,10 +381,10 @@ def s19_piramide(deck):
     takeaway(sl, "Cuanto más arriba, más lento, caro y variable. Lo que se pueda comprobar sin modelo, se comprueba sin modelo.",
              label="Idea guía")
     footer(sl, block=4)
-    notes(sl, """19:24–19:25. Tercera parte del temario: testing automatizado de agentes y pipelines RAG. Presentar la pirámide de abajo arriba. Base: tests deterministas con dobles, 73 en la demo, sin red, sin Docker y sin claves; se ejecutan en cada cambio. Segundo nivel: integración con servicios locales, aquí PostgreSQL con pgvector en Docker (marcador db). Tercer nivel: evaluaciones con modelo real, marcadas con @pytest.mark.llm y excluidas por defecto porque cuestan dinero y no son deterministas. Cima: revisión humana por muestreo. La tabla dice qué comprueba cada nivel en la demo.
+    notes(sl, """19:24–19:25. Tercera parte del temario: testing automatizado de agentes y pipelines RAG. Presentar la pirámide de abajo arriba. Base: tests deterministas con dobles, 103 en la demo, sin red, sin Docker y sin claves; se ejecutan en cada cambio. Segundo nivel: integración con servicios locales, aquí PostgreSQL con pgvector en Docker (marcador db). Tercer nivel: evaluaciones con modelo real, marcadas con @pytest.mark.llm y excluidas por defecto porque cuestan dinero y no son deterministas. Cima: revisión humana por muestreo. La tabla dice qué comprueba cada nivel en la demo.
 QUÉ ABRIR: carpeta tests/ de la demo.
 PREGUNTA: ¿qué pasaría si todos nuestros tests necesitaran llamar al modelo?
-Fuentes: enunciado de S19 («Automatiza las comprobaciones»); tests de la demo (73 pasan, 2 excluidos, 21/11/2026).""")
+Fuentes: enunciado de S19 («Automatiza las comprobaciones»); tests de la demo (131 pasan, 3 excluidos, 22/11/2026).""")
     return sl
 
 
@@ -416,7 +416,7 @@ def s20_dobles(deck):
         "           \"db: integración con PostgreSQL + pgvector\"]",
         "",
         ("$ uv run pytest", MINT_L),
-        ("73 passed, 2 deselected in 0.50s", MINT),
+        ("131 passed, 3 deselected in 1.29s", MINT),
     ], size=8.5)
     img(sl, "pytest-tile.png", 577, 128, w=34, h=34)
     text(sl, 620, 130, 290, 12, "LO QUE PIDE EL ENUNCIADO", size=9, color=MINT, bold=True)
@@ -441,10 +441,10 @@ def s21_agentes(deck):
     sl = deck.slide(tag="agentes")
     header(sl, "Testing de agentes", "En un agente se prueban las decisiones y los límites, no el texto",
            "Un agente elige qué hacer en cada paso. Lo que hay que comprobar es su trayectoria: qué decidió, en "
-           "qué orden y cuántas llamadas gastó. Ejemplo: un bucle correctivo (CRAG) sobre nuestro RAG.")
+           "qué orden y cuántas llamadas gastó. Ejemplo: un agente correctivo (CRAG) en LangGraph sobre nuestro RAG.")
     # diagrama CRAG
     box(sl, 43, 128, 520, 196, fill=CARD)
-    text(sl, 55, 136, 400, 12, "AMPLIACIÓN OPCIONAL · ampliacion/crag.py", size=8.5, color=MUTED, bold=True)
+    text(sl, 55, 136, 400, 12, "AMPLIACIÓN OPCIONAL · ampliacion/crag.py · grafo de LangGraph", size=8.5, color=MUTED, bold=True)
     chip(sl, 60, 176, 96, 34, "Recuperar", fill=PINK_BG, color=TITLE, size=10.5, line=PINK, radius=6)
     s = box(sl, 196, 166, 128, 54, fill=VIOLET_BG, line=VIOLET, shape=MSO_SHAPE.DIAMOND)
     shape_text(s, "¿Evidencia?", size=9.5, color=TITLE)
@@ -461,7 +461,7 @@ def s21_agentes(deck):
     poly(sl, [(210, 279), (108, 279), (108, 212)], color=AMBER)
     poly(sl, [(260, 242), (420, 242), (420, 260)], color=CORAL)
     text(sl, 300, 228, 130, 12, "se acabaron los intentos", size=8.5, color=CORAL, bold=True, check=False)
-    text(sl, 55, 302, 500, 16, "Máximo de intentos obligatorio: como mucho N recuperaciones y una generación.",
+    text(sl, 55, 302, 500, 16, "Dos límites: N intentos en la regla y recursion_limit de LangGraph si la regla falla.",
          size=9.5, color=TEXT)
     # tabla de decisiones
     table(sl, 577, 128, 340, [110, 70, 160], [
@@ -494,10 +494,10 @@ def s21_agentes(deck):
     takeaway(sl, "Un agente se prueba por su trayectoria: decisiones, argumentos y número de llamadas. Estos tests no sustituyen a los del RAG.",
              label="Idea guía")
     footer(sl, block=4)
-    notes(sl, """19:27–19:29. El temario habla de «testing automatizado de agentes y pipelines RAG». Para un agente, el texto final importa menos que la trayectoria: qué decidió en cada paso, qué herramienta llamó, con qué argumentos y cuántas llamadas gastó. El enunciado lo propone como ampliación opcional: tests de enrutado de un agente o CRAG para comprobar decisiones y límites de llamadas, sin sustituir los tests del RAG. Explicar el diagrama: recuperar; si hay evidencia, responder; si no y quedan intentos, reformular y volver a recuperar; si no quedan, rechazar. La regla de enrutado es una función pura y se prueba con la tabla de la derecha. El test del panel comprueba la trayectoria completa y que el límite se respeta. Si vamos con retraso, esta diapositiva queda como lectura.
-QUÉ ABRIR: ampliacion/crag.py y tests/test_enrutado.py.
+    notes(sl, """19:27–19:29. El temario habla de «testing automatizado de agentes y pipelines RAG». Para un agente, el texto final importa menos que la trayectoria: qué decidió en cada paso, qué herramienta llamó, con qué argumentos y cuántas llamadas gastó. El enunciado lo propone como ampliación opcional: tests de enrutado de un agente o CRAG para comprobar decisiones y límites de llamadas, sin sustituir los tests del RAG. Explicar el diagrama: recuperar; si hay evidencia, responder; si no y quedan intentos, reformular y volver a recuperar; si no quedan, rechazar. La regla de enrutado es una función pura y se prueba con la tabla de la derecha. El test del panel comprueba la trayectoria completa y que el límite se respeta. El agente es un grafo de LangGraph (como el de S5): nodos recuperar, reformular, responder y rechazar, con una arista condicional. Tiene dos límites: el de la regla (N intentos) y recursion_limit del framework, que corta el grafo si una regla mal escrita no deja de reformular; hay un test que lo demuestra. La propia consulta del RAG también es un grafo (rag/grafo.py) y tests/test_grafo.py comprueba su trayectoria: el rechazo previo nunca pasa por generar. Si vamos con retraso, esta diapositiva queda como lectura.
+QUÉ ABRIR: ampliacion/crag.py, tests/test_enrutado.py y, si hay tiempo, python s19.py chat (el panel muestra la rama de cada pregunta).
 PREGUNTA: ¿qué test detectaría un agente que entra en un bucle de reformulaciones?
-Fuentes: enunciado de S19 («Ampliación opcional»); código y tests de la demo (17/11/2026).""")
+Fuentes: enunciado de S19 («Ampliación opcional»); código y tests de la demo (grafo LangGraph desde el 22/11/2026).""")
     return sl
 
 
@@ -576,7 +576,7 @@ def s23_vivo4(deck):
          "(el informe se niega a resumir un conjunto al que le faltan casos).", size=9.5, color=MUTED)
     band_s(sl, "El código de salida 1 es lo que detiene un despliegue en CI: el control es un comando, no una opinión.")
     footer_s(sl)
-    notes(sl, """19:31–19:38. EN VIVO 4, la demostración central. 1) uv run pytest: 73 pasan y 2 quedan excluidos (db y llm); enseñar addopts en pyproject.toml. 2) umbrales sobre la validación A: calcula las nueve reglas (validación ± 0,10) y las compara con las fijadas en datos/umbrales.doble.json; no escribe sin --fijar, porque las reglas se congelan antes de mirar el test. 3) regresion sobre esa misma ejecución: PASA; enseñar el código de salida 0. 4) degradar con el modo recuperacion: copia la ejecución quitando el primer documento recuperado de cada pregunta y rotula el resultado como degradado a propósito. 5) informe y regresion sobre la copia: FALLA con tres reglas y código de salida 1. Si hay tiempo, modo juez-caido: la media de fidelidad sigue en 1,00 y lo que cae es la cobertura. Comentar que con la configuración B el control también falla en validación: detecta una regresión real, no fabricada.
+    notes(sl, """19:31–19:38. EN VIVO 4, la demostración central. 1) uv run pytest: 131 pasan y 3 quedan excluidos (2 db y 1 llm); enseñar addopts en pyproject.toml. 2) umbrales sobre la validación A: calcula las nueve reglas (validación ± 0,10) y las compara con las fijadas en datos/umbrales.doble.json; no escribe sin --fijar, porque las reglas se congelan antes de mirar el test. 3) regresion sobre esa misma ejecución: PASA; enseñar el código de salida 0. 4) degradar con el modo recuperacion: copia la ejecución quitando el primer documento recuperado de cada pregunta y rotula el resultado como degradado a propósito. 5) informe y regresion sobre la copia: FALLA con tres reglas y código de salida 1. Si hay tiempo, modo juez-caido: la media de fidelidad sigue en 1,00 y lo que cae es la cobertura. Comentar que con la configuración B el control también falla en validación: detecta una regresión real, no fabricada.
 QUÉ ABRIR: terminal; evaluacion/degradar.py; evaluacion/regresion.py.
 PREGUNTA: ¿qué pasaría si el control tratara un «sin dato» como aprobado?
 Fuentes: salida real de los comandos (resultados/ejemplo-doble, perfil doble, 17/11/2026); enunciado de S19 («demuestra, con resultados degradados de prueba, que el control de regresiones falla cuando debe»).""")

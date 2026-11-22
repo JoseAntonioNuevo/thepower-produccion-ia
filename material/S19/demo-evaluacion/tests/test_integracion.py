@@ -40,10 +40,41 @@ def test_pgvector_reconstruye_sin_duplicar_y_busca_por_coseno():
             con.execute("DELETE FROM indices WHERE chunk_size = 333")
 
 
+@pytest.mark.db
+def test_indices_de_distinta_dimension_conviven_en_la_misma_base():
+    """Cambiar de modelo de embeddings en .env no obliga a vaciar la base: cada índice guarda
+    su dimensión y la búsqueda solo compara vectores de ese índice."""
+    from rag.almacen import Indice
+    from rag.corpus import Fragmento
+
+    almacen = AlmacenPg(cargar_config().database_url)
+    almacen.preparar_esquema()
+    indices = []
+    try:
+        for dim in (768, 1536):
+            indice = Indice(f"idx-prueba-dim-{dim}", "real", f"modelo-{dim}", dim, 100, 0, 1, 2)
+            filas = [
+                (
+                    Fragmento(f"doc#{i}", "doc", i, "t", f"texto {dim} {i}", f"h-{dim}-{i}"),
+                    [float(i + 1)] + [0.0] * (dim - 1),
+                )
+                for i in range(2)
+            ]
+            almacen.reconstruir(indice, filas)
+            indices.append(indice)
+        for indice in indices:
+            hallazgos = almacen.buscar(indice.indice_id, [1.0] + [0.0] * (indice.embedding_dim - 1), 5)
+            assert {h.contenido.split()[1] for h in hallazgos} == {str(indice.embedding_dim)}
+            assert almacen.leer_indice(indice.indice_id).embedding_dim == indice.embedding_dim
+    finally:
+        with almacen._conectar() as con:
+            con.execute("DELETE FROM indices WHERE indice_id LIKE 'idx-prueba-dim-%'")
+
+
 @pytest.mark.llm
 def test_rag_real_responde_con_fuente_y_rechaza_lo_que_no_consta():
     if os.environ.get("S19_EJECUTAR_REAL") != "1" or os.environ.get("S19_PERFIL") != "real":
-        pytest.skip("evaluación real: exige S19_PERFIL=real, GEMINI_API_KEY y S19_EJECUTAR_REAL=1")
+        pytest.skip("evaluación real: exige S19_PERFIL=real, OPENROUTER_API_KEY y S19_EJECUTAR_REAL=1")
     from rag.config import aplicar_variante, cargar_calibracion
     from rag.ingesta import indice_esperado
 

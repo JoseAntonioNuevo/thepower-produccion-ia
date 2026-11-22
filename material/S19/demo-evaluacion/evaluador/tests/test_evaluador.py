@@ -46,15 +46,11 @@ def test_firmas_de_ascore():
     assert {"llm", "embeddings"} <= set(inspect.signature(AnswerRelevancy.__init__).parameters)
 
 
-def test_la_ruta_sincrona_de_la_guia_falla_en_ascore():
-    """Con ragas 0.4.3, llm_factory(provider='google', client=genai.Client()) es síncrono."""
-    from google import genai
-    from ragas.llms import llm_factory
-
-    llm = llm_factory("gemini-3.8-flash", provider="google", client=genai.Client(api_key="falsa"))
-    assert llm.is_async is False
-    with pytest.raises(TypeError, match="synchronous client"):  # falla antes de usar la red
-        asyncio.run(Faithfulness(llm=llm).ascore(user_input="p", response="r", retrieved_contexts=["c"]))
+def test_sin_dependencias_de_un_proveedor_concreto():
+    """El juez real va siempre por OpenRouter: no se instala ningún SDK de proveedor."""
+    with pytest.raises(md.PackageNotFoundError):
+        md.version("google-genai")
+    assert md.version("openai") == "3.3.0"
 
 
 # ------------------------------------------------------------ recorrido con juez doble
@@ -134,15 +130,20 @@ def test_modo_real_exige_clave_y_execute(tmp_path, monkeypatch, capsys):
         [{**FILA, "config_id": "A", "perfil": "doble", "conjunto": "test", "documentos_recuperados": []}],
         ev.intercambio.RESPUESTAS,
     )
-    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
     assert ev.main([str(tmp_path), "--modo", "real"]) == 2
     assert not (tmp_path / "puntuaciones.jsonl").exists()  # no cae al juez doble
     assert "No se usa el juez doble" in capsys.readouterr().err
 
 
-# ------------------------------------------------------------ ruta real con HTTP simulado
+# ------------------------------------------------------------ juez real (OpenRouter) con HTTP simulado
+PETICIONES: list[dict] = []
+
+
 def _servidor_simulado(peticion: httpx.Request) -> httpx.Response:
+    """Imita a OpenRouter: responde en formato OpenAI y añade `usage.cost` (lo cobrado)."""
     cuerpo = json.loads(peticion.content)
+    PETICIONES.append({"ruta": peticion.url.path, **cuerpo})
     if peticion.url.path.endswith("/embeddings"):
         textos = cuerpo["input"] if isinstance(cuerpo["input"], list) else [cuerpo["input"]]
         datos = [{"object": "embedding", "index": i, "embedding": [1.0, 0.0, 0.5]} for i, _ in enumerate(textos)]
@@ -152,13 +153,12 @@ def _servidor_simulado(peticion: httpx.Request) -> httpx.Response:
                 "object": "list",
                 "data": datos,
                 "model": cuerpo["model"],
-                "usage": {"prompt_tokens": 9, "total_tokens": 9},
+                "usage": {"prompt_tokens": 9, "total_tokens": 9, "cost": 0.000001},
             },
         )
     texto = json.dumps(cuerpo)
     if "StatementGeneratorOutput" in texto:
         args = {"statements": ["Las pasarelas exigen TLS 1.3.", "Incluyen un cortafuegos cuántico."]}
-        nombre = "StatementGeneratorOutput"
     elif "NLIStatementOutput" in texto:
         args = {
             "statements": [
@@ -166,9 +166,8 @@ def _servidor_simulado(peticion: httpx.Request) -> httpx.Response:
                 {"statement": "Incluyen un cortafuegos cuántico.", "reason": "no consta", "verdict": 0},
             ]
         }
-        nombre = "NLIStatementOutput"
     else:
-        args, nombre = {"question": "¿Qué TLS exigen las pasarelas?", "noncommittal": 0}, "AnswerRelevanceOutput"
+        args = {"question": "¿Qué TLS exigen las pasarelas?", "noncommittal": 0}
     mensaje = {"role": "assistant", "content": json.dumps(args)}
     if cuerpo.get("tools"):
         mensaje = {
@@ -189,48 +188,126 @@ def _servidor_simulado(peticion: httpx.Request) -> httpx.Response:
             "object": "chat.completion",
             "created": 0,
             "model": cuerpo["model"],
+            "provider": "Anthropic",
             "choices": [{"index": 0, "finish_reason": "stop", "message": mensaje}],
             # total > entrada + salida visible: la diferencia son tokens de razonamiento
-            "usage": {"prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 1300},
-            "_esquema": nombre,
+            "usage": {"prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 1300, "cost": 0.0012},
         },
     )
 
 
-def test_ruta_openai_compat_mide_tokens_y_coste_del_juez():
-    llm, emb, contador = ev.crear_real(
-        "openai_compat",
-        "gemini-3.8-flash",
-        "gemini-embedding-001",
+def _juez_simulado(ajustes=None):
+    PETICIONES.clear()
+    return ev.crear_real(
+        "anthropic/claude-haiku-5.5",
+        "openai/text-embedding-3-small",
         4096,
         "clave-falsa",
+        ajustes,
         transporte=httpx.MockTransport(_servidor_simulado),
+        url_base="https://openrouter.ai/api/v1",
     )
+
+
+def test_juez_openrouter_mide_tokens_y_el_coste_cobrado():
+    llm, emb, contador = _juez_simulado()
     assert llm.is_async is True
-    evaluador = ev.descripcion_evaluador("real", "openai_compat", "gemini-3.8-flash", "gemini-embedding-001")
+    evaluador = ev.descripcion_evaluador("real", "openrouter", "anthropic/claude-haiku-5.5", "openai/text-embedding-3-small")
     fidelidad, relevancia = asyncio.run(ev.evaluar([FILA], llm, emb, evaluador, contador))
     assert fidelidad["valor"] == 0.5 and relevancia["evaluable"]
+    assert all(p["ruta"].startswith("/api/v1/") for p in PETICIONES)  # todo va a OpenRouter
     assert fidelidad["consumo"]["llamadas_llm"] == 2
     assert fidelidad["consumo"]["tokens_entrada"] == 2000
     assert fidelidad["consumo"]["tokens_salida"] == 600  # incluye razonamiento
-    # 2000 × 0,75 + 600 × 3,75 = 3750 → 0,00375 USD (tarifas.json)
-    assert fidelidad["consumo"]["coste_usd"] == pytest.approx(0.00375)
+    # Coste: el que devuelve OpenRouter en usage.cost (2 × 0,0012), no una estimación.
+    assert fidelidad["consumo"]["coste_usd"] == pytest.approx(0.0024)
+    assert fidelidad["consumo"]["coste_fuente"] == "openrouter"
     assert relevancia["consumo"]["llamadas_llm"] == 3
     assert relevancia["consumo"]["llamadas_embeddings"] >= 1
+
+
+def test_ajustes_de_env_llegan_a_cada_peticion():
+    ajustes = {
+        "llm_proveedores": ["Anthropic"],
+        "embedding_proveedores": ["OpenAI"],
+        "llm_extra": {"usage": {"include": True}},
+        "quitar_parametros": ["temperature", "top_p"],
+    }
+    llm, emb, contador = _juez_simulado(ajustes)
+    evaluador = ev.descripcion_evaluador("real", "openrouter", "x", "y", ajustes)
+    asyncio.run(ev.evaluar([FILA], llm, emb, evaluador, contador))
+    chat = [p for p in PETICIONES if p["ruta"].endswith("/chat/completions")]
+    embeddings = [p for p in PETICIONES if p["ruta"].endswith("/embeddings")]
+    assert chat and embeddings
+    assert all(p["provider"] == {"order": ["Anthropic"], "allow_fallbacks": False} for p in chat)
+    assert all("temperature" not in p and "top_p" not in p for p in chat)
+    assert all(p["usage"] == {"include": True} for p in chat)
+    assert all(p["provider"] == {"order": ["OpenAI"], "allow_fallbacks": False} for p in embeddings)
+    assert evaluador["ajustes"] == ajustes  # forman parte de la identidad del evaluador
+
+
+def test_con_byok_el_coste_del_juez_incluye_lo_que_factura_el_proveedor():
+    def byok(peticion):
+        datos = _servidor_simulado(peticion).json()
+        datos["usage"].update(cost=0, is_byok=True, cost_details={"upstream_inference_cost": 0.002})
+        return httpx.Response(200, json=datos)
+
+    PETICIONES.clear()
+    llm, emb, contador = ev.crear_real(
+        "anthropic/claude-opus-5.5",
+        "openai/text-embedding-3-small",
+        4096,
+        "clave-falsa",
+        transporte=httpx.MockTransport(byok),
+        url_base="https://openrouter.ai/api/v1",
+    )
+    evaluador = ev.descripcion_evaluador("real", "openrouter", "anthropic/claude-opus-5.5", "openai/text-embedding-3-small")
+    fidelidad, _ = asyncio.run(ev.evaluar([FILA], llm, emb, evaluador, contador))
+    assert fidelidad["consumo"]["coste_usd"] == pytest.approx(0.004)  # 2 llamadas × 0,002, no 0
+    assert fidelidad["consumo"]["coste_fuente"] == "openrouter"
+
+
+def test_los_parametros_que_el_juez_no_admite_se_quitan_segun_el_catalogo():
+    # anthropic/claude-opus-5.5 no admite temperature ni top_p según tarifas.json (OpenRouter).
+    assert ev.parametros_no_admitidos("anthropic/claude-opus-5.5") == ["temperature", "top_p"]
+    assert ev.parametros_no_admitidos("google/gemini-4-hydrogen") == []
+    assert ev.parametros_no_admitidos("modelo/desconocido") == []  # sin ficha no se adivina
+
+
+def test_sin_coste_informado_se_estima_con_la_tarifa_y_se_dice():
+    def sin_coste(peticion):
+        respuesta = _servidor_simulado(peticion)
+        datos = respuesta.json()
+        datos["usage"].pop("cost", None)
+        return httpx.Response(200, json=datos)
+
+    PETICIONES.clear()
+    llm, emb, contador = ev.crear_real(
+        "anthropic/claude-haiku-5.5",
+        "openai/text-embedding-3-small",
+        4096,
+        "clave-falsa",
+        transporte=httpx.MockTransport(sin_coste),
+        url_base="https://openrouter.ai/api/v1",
+    )
+    evaluador = ev.descripcion_evaluador("real", "openrouter", "anthropic/claude-haiku-5.5", "openai/text-embedding-3-small")
+    fidelidad, _ = asyncio.run(ev.evaluar([FILA], llm, emb, evaluador, contador))
+    # 2000 × 0,10 + 600 × 0,50 = 500 → 0,0005 USD con tarifas.json (precios de OpenRouter)
+    assert fidelidad["consumo"]["coste_usd"] == pytest.approx(0.0005)
+    assert fidelidad["consumo"]["coste_fuente"] == "tarifa"
 
 
 # ------------------------------------------------------------ evaluación real (de pago)
 @pytest.mark.llm
 def test_juez_real_puntua_una_respuesta():
-    if os.environ.get("S19_EJECUTAR_REAL") != "1" or not os.environ.get("GEMINI_API_KEY"):
-        pytest.skip("evaluación real: exige GEMINI_API_KEY y S19_EJECUTAR_REAL=1")
-    llm, emb, contador = ev.crear_real(
-        os.environ.get("S19_EVAL_RUTA", "openai_compat"),
-        os.environ.get("S19_EVAL_LLM_MODEL", "gemini-3.8-flash"),
-        os.environ.get("S19_EVAL_EMBEDDING_MODEL", "gemini-embedding-001"),
-        4096,
-        os.environ["GEMINI_API_KEY"],
-    )
-    evaluador = ev.descripcion_evaluador("real", "openai_compat", "gemini-3.8-flash", "gemini-embedding-001")
+    ev.cargar_env()  # la clave está en ../.env, igual que en evaluar.py
+    if os.environ.get("S19_EJECUTAR_REAL") != "1" or not os.environ.get("OPENROUTER_API_KEY"):
+        pytest.skip("evaluación real: exige OPENROUTER_API_KEY y S19_EJECUTAR_REAL=1")
+    modelo = os.environ.get("S19_EVAL_LLM_MODEL") or ev.EVAL_LLM_MODELO_DEFECTO
+    modelo_emb = os.environ.get("S19_EVAL_EMBEDDING_MODEL") or ev.EVAL_EMBEDDING_MODELO_DEFECTO
+    ajustes = ev.ajustes_desde_entorno()
+    llm, emb, contador = ev.crear_real(modelo, modelo_emb, 4096, os.environ["OPENROUTER_API_KEY"], ajustes)
+    evaluador = ev.descripcion_evaluador("real", "openrouter", modelo, modelo_emb, ajustes)
     filas = asyncio.run(ev.evaluar([FILA], llm, emb, evaluador, contador))
     assert all(f["evaluable"] for f in filas), [f["motivo"] for f in filas]
+    assert all(f["consumo"]["coste_fuente"] == "openrouter" for f in filas)

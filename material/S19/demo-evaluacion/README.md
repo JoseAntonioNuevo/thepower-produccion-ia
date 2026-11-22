@@ -6,9 +6,17 @@ compara dos configuraciones y demuestra que un control de regresión **falla cua
 
 Todo funciona **sin claves y sin coste** con el perfil `doble`. Ese perfil no usa ningún
 modelo: comprueba que el sistema de evaluación funciona, **no mide la calidad de un modelo**.
-Para medir de verdad se usa el perfil `real` (API de Gemini), que exige `--execute`.
+Para medir de verdad se usa el perfil `real`, que exige `--execute`. Todos sus modelos pasan
+por **OpenRouter** y se eligen en `.env`: generación, embeddings y juez se cambian sin tocar
+el código (OpenAI, Anthropic, Google y otros con una sola clave).
+
+La consulta es un **grafo de LangGraph** (`rag/grafo.py`), y se puede seguir paso a paso
+en un chat de terminal con la misma librería de la TUI de S5/S6 (`python s19.py chat`).
 
 ```text
+grafo de consulta:  START → recuperar ─┬─ similitud ≥ umbral → generar → comprobar → END
+                                       └─ similitud < umbral → rechazo_previo → END (sin modelo)
+
 corpus/ (10 .md ficticios) ──► fragmentar ──► embeddings ──► PostgreSQL + pgvector
                                                                     │
 pregunta ──► embedding ──► 12 fragmentos ──► 5 documentos distintos ┤──► precision@5 · recall@5
@@ -30,12 +38,14 @@ pregunta ──► embedding ──► 12 fragmentos ──► 5 documentos dist
 |---|---|
 | `corpus/` | Diez documentos ficticios de «AetherCloud». Es lo único que se indexa |
 | `datos/` | `test.jsonl` (14 + 6), `validacion.jsonl` (5 + 3), `criterios.md`, variantes A/B, calibración, umbrales |
-| `rag/` | Ingesta, almacén pgvector, proveedores (doble y Gemini), consulta, costes, Langfuse |
+| `rag/` | Ingesta, almacén pgvector, proveedores (doble y OpenRouter), catálogo de modelos, **grafo de consulta (LangGraph)**, costes, Langfuse |
 | `evaluacion/` | Métricas, lote, informe, comparación, regresión, degradación de prueba, contrato JSONL |
 | `evaluador/` | **Entorno aislado** con `ragas==0.4.3` y `langchain-community==0.3.31` |
-| `ampliacion/` | Opcional: bucle CRAG para practicar tests de decisiones de un agente |
+| `ampliacion/` | Opcional: agente CRAG en LangGraph para practicar tests de trayectoria y límites |
+| `ui/` | Chat en la terminal (OpenTUI, reutilizado de S5/S6): el grafo paso a paso, con criterio y trazas |
 | `tests/` | pytest con dobles; `db` y `llm` excluidos por defecto |
 | `resultados/ejemplo-doble/` | Resultados de ejemplo del perfil doble (rotulados) |
+| `resultados/ejemplo-real/` | Ejecuciones reales del 22/11/2026: A/B de fragmentación y comparación de modelos |
 | `s19.py` | Único punto de entrada |
 
 ## Antes de empezar
@@ -45,7 +55,7 @@ comandos son los mismos en macOS, Linux y Windows (PowerShell o Git Bash).
 
 ```bash
 cd demo-evaluacion
-uv sync                      # entorno del RAG (psycopg, google-genai, langfuse, pytest, ruff)
+uv sync                      # entorno del RAG (psycopg, openai, langfuse, langgraph, opentui, pytest, ruff)
 cp .env.example .env         # perfil doble por defecto; no hace falta ninguna clave
 docker compose up -d --wait  # PostgreSQL 17 + pgvector en 127.0.0.1:54519
 uv run python s19.py preflight
@@ -69,6 +79,30 @@ uv run python s19.py preguntar "¿Cuál es el horario de la cafetería de la ofi
 ```
 
 La primera responde citando `[01-arquitectura-aethercloud]`; la segunda se rechaza.
+
+### El grafo paso a paso: `chat`
+
+```bash
+uv run python s19.py chat                                  # perfil doble: sin coste
+uv run python s19.py chat --env .env.sol-opus --execute    # perfil real con otro archivo de entorno
+```
+
+Abre un chat en la terminal (necesita una terminal real: no funciona en una tubería). Cada
+pregunta ejecuta **el mismo grafo que el lote** y enseña cada nodo al terminar: los documentos
+recuperados con la similitud frente al umbral, la generación con tokens y coste, la comprobación
+de fuentes o la rama de **rechazo previo**, que no llama al modelo. El panel lateral resalta el
+nodo activo y el camino recorrido.
+
+| Entrada | Qué hace |
+|---|---|
+| `1` … `7` | Preguntas del guion del directo (T01, T13, T12, T14, T15, T17, T08) |
+| `T01` … `T20` | Cualquier pregunta del test, con el veredicto del criterio y la respuesta de referencia |
+| `/perfil sol-opus` | Carga `.env.sol-opus` sin salir (cambia de modelos); `/perfil` lista los archivos |
+| `/config B` | Fragmentos de 900; también `A`, `MH`, `MS` |
+| `/casos`, `/ayuda`, `salir` o Esc | Lista del test, ayuda, salir |
+
+Con Langfuse activo, cada pregunta del chat deja una traza igual a las del lote (sesión
+`chat-<fecha>`). El juez de Ragas no actúa en el chat: se aplica a los lotes.
 
 ## Paso 2 · Decidir con validación, no con el test
 
@@ -144,6 +178,21 @@ uv run python s19.py comparar resultados/mi-test-A resultados/mi-test-B --salida
 `comparar` se niega a trabajar si las dos ejecuciones difieren en más de una variable, o si
 no comparten conjunto, modelos y evaluador.
 
+**Evaluar modelos** (solo perfil real): las variantes `MH` y `MS` de `datos/configuraciones.json`
+solo cambian el modelo de generación. Se ejecutan con el **mismo** archivo de entorno, así que
+comparten índice, prompt, parámetros y juez:
+
+```bash
+for m in MH MS; do
+  uv run python s19.py lote --env .env.sol-opus --conjunto test --config $m --salida resultados/mi-test-$m --execute
+  (cd evaluador && uv run python evaluar.py ../resultados/mi-test-$m --env ../.env.sol-opus --modo real --execute)
+  uv run python s19.py informe resultados/mi-test-$m
+done
+uv run python s19.py comparar resultados/mi-test-MH resultados/mi-test-MS
+```
+
+El juez no debe ser ninguno de los candidatos: puntuaría mejor su propio estilo.
+
 ## Paso 7 · Revisión manual
 
 ```bash
@@ -157,13 +206,18 @@ Hay un ejemplo relleno en `resultados/ejemplo-doble/test-A/revision-manual-EJEMP
 ## Paso 8 · Tests
 
 ```bash
-uv run pytest                 # 73 tests con dobles; no usa red, Docker ni claves
+uv run pytest                 # 131 tests con dobles; no usa red, Docker ni claves
 uv run pytest -m db           # integración con pgvector (necesita el contenedor)
 uv run ruff check .
-(cd evaluador && uv run pytest)   # 15 tests del evaluador, también sin red
+(cd evaluador && uv run pytest)   # 19 tests del evaluador, también sin red
 ```
 
 Los tests marcados `llm` llaman a modelos de pago y **no se ejecutan por defecto**.
+
+Además de formato, fuentes y errores, los tests comprueban **trayectorias**: qué nodos recorre
+cada pregunta en el grafo de consulta (`tests/test_grafo.py`), que el rechazo previo no llama al
+modelo, que el agente CRAG respeta su límite de intentos y que `recursion_limit` de LangGraph
+corta una regla rota (`tests/test_enrutado.py`). El chat se prueba sin pantalla (`tests/test_tui.py`).
 
 ## Paso 9 · Recoger
 
@@ -196,9 +250,123 @@ Tres cosas que este ejemplo ya enseña:
 Además, el test A **no cumple** los umbrales derivados de validación (3 reglas): ocho casos de
 validación son pocos para generalizar. Se deja a la vista; no se retocan las reglas tras ver el test.
 
-## Perfil real · pendiente de autorización de gasto
+## Perfil real con OpenRouter · ejecutado el 22/11/2026
 
-No se ha ejecutado. Requiere `GEMINI_API_KEY` en `.env`, `S19_PERFIL=real` y `--execute`.
+Requiere `OPENROUTER_API_KEY` en `.env`, `S19_PERFIL=real` y `--execute`. Recorrido completo
+ejecutado el 22/11/2026 con Gemini 4 Hydrogen (generación), `openai/text-embedding-3-small`
+(embeddings, 768) y Claude Opus 5.5 (juez). Resultados en `resultados/ejemplo-real/`:
+
+| Métrica | Validación A | Validación B | Test A | Test B |
+|---|---:|---:|---:|---:|
+| precision@5 (techo 0,24) | 0,24 | 0,24 | 0,24 | 0,23 |
+| recall@5 | 1,00 | 1,00 | 1,00 | 0,96 |
+| Rechazos correctos | 3/3 | 3/3 | 6/6 | 6/6 |
+| Abstenciones incorrectas | 0/5 | 1/5 | 1/14 | 3/14 |
+| Aciertos por criterio | 4/5 | 4/5 | 13/14 | 11/14 |
+| faithfulness · cobertura | 1,00 · 5/5 | 1,00 · 4/4 | 0,92 · 13/13 | 0,98 · 11/11 |
+| answer_relevancy · cobertura | 0,90 · 5/5 | 0,93 · 4/4 | 0,87 · 13/13 | 0,89 · 11/11 |
+| Coste del RAG (USD, medido) | 0,018 | 0,013 | 0,041 | 0,045 |
+| Coste del juez (USD, medido) | 0,175 | 0,137 | 0,460 | 0,430 |
+
+- **Umbral de evidencia calibrado con validación A:** 0,5223 (7 de 8 decisiones correctas).
+- **Regresión:** pasa con validación A y con test A (código 0); falla con validación B
+  (código 1: abstenciones 0,20 > 0,10). Los umbrales salen de validación A y se fijaron antes del test.
+- **Comparación A/B (`chunk_size` 320 frente a 900):** B se abstiene más (3 de 14 frente a 1 de
+  14) y acierta menos (11 frente a 13), aunque su fidelidad media es mayor. Cambian T08 y T14.
+- **Coste:** una pasada completa (validación y test, A y B) costó **1,29 USD medidos**: 0,09 el
+  RAG y 1,20 el juez. Coincide con lo que bajó el saldo de la clave (1,288 USD).
+- **BYOK:** la cuenta usa claves propias de los proveedores. OpenRouter cobra solo su comisión
+  (`cost` = 0) y la inferencia la factura cada proveedor (`cost_details.upstream_inference_cost`).
+  El código suma las dos; sin eso, el coste habría salido 0.
+- **Primera pasada (`ejemplo-real/primera-pasada-razonamiento-libre/`):** con razonamiento libre y
+  2048 tokens, Gemini 4 Hydrogen gastó todo el máximo pensando en 3 casos y devolvió respuestas
+  vacías. Quedaron como `respuesta_vacia` (no evaluables, no aciertos). Desde entonces el razonamiento
+  va en `low` por defecto (`S19_GEN_EXTRA`) y se avisa `max_tokens_agotado`.
+- **Coste del RAG:** incluye también los rechazos del modelo («No consta» tras leer los
+  fragmentos), que se pagan igual. Hasta el 22/11 el informe solo sumaba las respuestas emitidas.
+- **Pendiente:** la revisión manual humana de `ejemplo-real/test-A/revision-manual.csv`.
+
+### Evaluación de modelos · 22/11/2026
+
+Variantes `MH` (Gemini 4 Hydrogen) y `MS` (GPT-6.2 Sol): mismo índice A, prompt v1, sin
+temperatura, razonamiento bajo y el mismo juez (Claude Opus 5.5). Resultados en
+`resultados/ejemplo-real/modelos/`:
+
+| Métrica (test, 20 casos) | Hydrogen (MH) | Sol (MS) |
+|---|---:|---:|
+| recall@5 | 1,00 | 1,00 |
+| Rechazos correctos | 6/6 | 6/6 |
+| Abstenciones incorrectas | 1/14 (T12) | 0/14 |
+| Aciertos por criterio | 13/14 | 12/14 (T12, T14) |
+| faithfulness · cobertura | 0,92 · 13/13 | 1,00 · 14/14 |
+| answer_relevancy · cobertura | 0,86 · 13/13 | 0,88 · 14/14 |
+| Latencia p50 / p95 | 2,54 s / 3,65 s | 1,61 s / 1,88 s |
+| Coste por consulta · por 1.000 | 0,0021 USD · 2,13 USD | 0,0010 USD · 1,00 USD |
+| Peso del juez en el coste | 91 % | 96 % |
+
+Los dos fallos de Sol son del **criterio automático**, no del contenido: en T14 escribe «800 ms»
+y el criterio exige «800 milisegundos»; en T12 escribe «24×7» (signo de multiplicar) en lugar de
+«24x7» y deja sin responder qué soporte incluye el plan Empresa. En otra ejecución anterior Sol
+escribió «24x7» y T12 contó como acierto: **el mismo modelo cambia de veredicto entre pasadas**.
+Por eso existe la revisión manual y por eso no se retocan las reglas tras ver el test.
+
+### Métricas de producción
+
+Cada informe añade las cifras que se vigilan en producción, por consulta: **latencia p50 y p95**
+(rango más cercano: con 20 consultas, p95 es la 19.ª más lenta), **tasa de error**, **tasa de
+rechazo** separando los rechazos sin llamar al modelo, **coste por consulta y por 1.000
+consultas** (generación + embeddings de la pregunta) y el **peso del juez** en el coste total.
+`comparar` incluye p95 y coste por consulta.
+
+**El proveedor es siempre OpenRouter**: una sola clave da acceso a modelos de OpenAI,
+Anthropic, Google y otros, con una API compatible con la de OpenAI.
+
+### Cambiar cualquier modelo desde `.env`
+
+| Pieza | Variable | Por defecto |
+|---|---|---|
+| Generación | `S19_GEN_MODEL` | `google/gemini-4-hydrogen` |
+| Embeddings del RAG | `S19_EMBEDDING_MODEL` · `S19_EMBEDDING_DIM` | `openai/text-embedding-3-small` · 768 |
+| Juez de Ragas | `S19_EVAL_LLM_MODEL` | `anthropic/claude-opus-5.5` |
+| Embeddings del juez | `S19_EVAL_EMBEDDING_MODEL` | `openai/text-embedding-3-small` |
+
+Los nombres son los del [catálogo de OpenRouter](https://openrouter.ai/models) (`proveedor/modelo`).
+Además se pueden ajustar desde `.env`, sin tocar código: tokens máximos y temperatura de la
+generación, plantillas con las que se presentan los textos al modelo de embeddings, si se pide
+la dimensión, el orden fijo de proveedores de OpenRouter (`S19_*_PROVEEDORES`), campos extra
+en JSON (`S19_*_EXTRA`) y parámetros que se quitan al juez. Todo está explicado en
+[.env.example](.env.example).
+
+Para tener varias combinaciones sin copiar archivos, guarda cada una en su `.env.<nombre>` y
+elígela con `--env` en cualquier comando (`python s19.py lote --env .env.sol-opus …`) o con
+`/perfil <nombre>` dentro del chat. El evaluador acepta lo mismo: `evaluar.py … --env ../.env.<nombre>`.
+
+Después de cambiar un modelo:
+
+```bash
+uv run python s19.py catalogo     # precios y parámetros admitidos (API pública, sin clave ni coste)
+uv run python s19.py preflight    # comprueba clave, modelos y parámetros sin llamar a ninguno
+uv run python s19.py estimar      # llamadas y coste previstos con los modelos nuevos
+```
+
+Reglas que el código hace cumplir:
+
+- **Otro modelo de embeddings, otra dimensión u otra plantilla = otro índice.** Hay que volver a
+  `ingestar` y a `calibrar --fijar`: un umbral de evidencia calibrado con otro modelo no vale y
+  `preflight` lo avisa. La base guarda la dimensión de cada índice, así que conviven índices de
+  modelos distintos (la columna `vector` no tiene dimensión fija; por eso no hay índice HNSW).
+- **El modelo de generación puede ser la variable de una comparación A/B** (`gen_modelo` en
+  `datos/configuraciones.json`, solo en el perfil real) con el mismo índice y el mismo juez.
+- **Fija el proveedor al comparar.** OpenRouter puede servir un modelo desde varios proveedores.
+  `S19_GEN_PROVEEDORES=Google` fija cuál y desactiva los cambios automáticos; el manifiesto
+  guarda qué proveedor sirvió cada respuesta (`proveedores_servidos`).
+- **Anthropic no tiene modelos de embeddings**: para embeddings usa OpenAI, Google, Qwen, etc.
+
+### Coste
+
+Cada respuesta de OpenRouter trae `usage.cost`, lo que cobró. Ese es el coste que se guarda
+(`coste_fuente: "openrouter"`) para el RAG y, aparte, para el juez. Si una respuesta no lo
+trae, se estima con `tarifas.json` y se rotula `"tarifa"`; si tampoco hay tarifa, queda sin dato.
 
 ```bash
 uv run python s19.py estimar        # no llama a nada
@@ -206,19 +374,21 @@ uv run python s19.py estimar        # no llama a nada
 
 | Partida | Llamadas (máx.) | Estimación | Cota superior |
 |---|---:|---:|---:|
-| Embeddings del RAG | 118 | 0,004 USD | 0,004 USD |
-| Generación del RAG | 56 | 0,061 USD | 0,162 USD |
-| Juez (Ragas) | 280 | 0,504 USD | 4,490 USD |
-| Embeddings del juez | 112 | ≈ 0 | ≈ 0 |
-| **Total** | **566** | **0,57 USD** | **4,66 USD** |
+| Embeddings del RAG | 118 | 0,0004 USD | 0,0004 USD |
+| Generación del RAG | 56 | 0,218 USD | 0,953 USD |
+| Juez (Ragas) | 280 | 2,688 USD | 23,946 USD |
+| Embeddings del juez | 112 | 0,0001 USD | 0,0001 USD |
+| **Total** | **566** | **2,91 USD** | **24,90 USD** |
 
-Tarifas de `tarifas.json` (Gemini Developer API, consultadas el 16/11/2026). La estimación
-usa los tamaños supuestos de `datos/supuestos-coste.json`; la cota supone que cada respuesta
-agota su máximo de tokens. Secuencia exacta en [docs/comandos.md](docs/comandos.md#perfil-real).
+Con los modelos por defecto (Gemini 4 Hydrogen genera, Claude Opus 5.5 juzga) y los precios de
+OpenRouter del 22/11/2026 (`tarifas.json`). La estimación usa los tamaños supuestos de
+`datos/supuestos-coste.json`; la cota supone que cada respuesta agota su máximo de tokens. Casi
+todo el gasto es del juez (Opus: 4 USD de entrada y 20 de salida por millón). Para abaratar,
+baja `S19_EVAL_MAX_TOKENS` (acota la cota) o elige un juez más barato en `.env`. Secuencia exacta en [docs/comandos.md](docs/comandos.md#perfil-real).
 
 ## Langfuse (opcional)
 
-Con `S19_LANGFUSE=on` y las claves `LANGFUSE_*`, cada consulta deja una traza `consulta-rag`
+Con `S19_LANGFUSE=on` y las claves `LANGFUSE_*`, cada consulta (del lote o del chat) deja una traza `consulta-rag`
 con pregunta, respuesta, fuentes, documentos recuperados, latencia por paso, tokens y coste
 de la generación, y las métricas como puntuaciones. El consumo del juez va en **otra traza**
 (`evaluador-ragas`), que se publica con:
@@ -227,14 +397,16 @@ de la generación, y las métricas como puntuaciones. El consumo del juez va en 
 uv run python s19.py publicar-evaluador resultados/mi-test-A
 ```
 
-Cuando los tokens y la tarifa en `tarifas.json` son conocidos, el cliente envía además el
-coste calculado (`cost_details`: `input`, `output` y `total` en USD en la generación; `total`
-en la traza del evaluador si todas las filas del caso tienen `coste_usd`) y la versión de
-modelo servida por la API (`model_version`) en los metadatos de generación. Si falta algún
-dato, no se envía coste (nunca `0`). Conviene definir igualmente el precio del modelo en
-Project Settings → Models en Langfuse para los modelos cuyo coste se calcule en servidor. El
+Cada generación envía a Langfuse su coste (`cost_details`): el `total` cobrado por OpenRouter
+o, si no llegó, el desglose `input`/`output`/`total` estimado con `tarifas.json`. La traza del
+evaluador lleva el `total` del juez si todas las filas del caso lo tienen. Los metadatos de la
+generación guardan el modelo exacto que sirvió la API (`model_version`) y el proveedor
+(`proveedor_servido`). Si falta algún dato, no se envía coste (nunca `0`). Si en Langfuse un
+modelo aparece sin coste, comprueba el nombre del modelo y define su precio en
+Project Settings → Models. Cada paso del grafo (`recuperacion`, `generacion`) cuelga
+explícitamente de la raíz de la traza, aunque LangGraph ejecute el nodo en otro hilo. El
 envío a un servidor Langfuse **no se ha probado** en esta preparación; sí las llamadas al SDK,
-sin red.
+sin red, y la jerarquía de observaciones con el SDK real.
 
 ## Límites conocidos
 

@@ -15,7 +15,7 @@ from rag.proveedores import Proveedores
 from tests.conftest import GeneradorSimulado, config
 
 PREGUNTA = "¿Qué versión de TLS exigen las pasarelas perimetrales de AetherCloud?"
-EVALUADOR = {"modo": "real", "ragas": "0.4.3", "llm": "gemini-3.8-flash"}
+EVALUADOR = {"modo": "real", "ragas": "0.4.3", "llm": "anthropic/claude-haiku-5.5"}
 
 
 class _Obs:
@@ -24,6 +24,13 @@ class _Obs:
 
     def update(self, **campos):
         self.campos.update({k: v for k, v in campos.items() if v is not None})
+
+    @contextmanager
+    def start_as_current_observation(self, **campos):
+        """Observación hija: se anota con el nombre de su madre para comprobar la jerarquía."""
+        hija = {**campos, "_madre": self.campos.get("name")}
+        self.registro.observaciones.append(hija)
+        yield _Obs(self.registro, hija)
 
 
 class ClienteFalso:
@@ -75,6 +82,8 @@ def test_una_consulta_deja_recuperacion_generacion_y_puntuaciones(cfg, sistema):
         )
     nombres = [(o["name"], o["as_type"]) for o in cliente.observaciones]
     assert nombres == [("consulta-rag", "span"), ("recuperacion", "retriever"), ("generacion", "generation")]
+    # Cada paso del grafo cuelga de la raíz de la consulta, aunque LangGraph lo ejecute en otro hilo.
+    assert [o.get("_madre") for o in cliente.observaciones[1:]] == ["consulta-rag", "consulta-rag"]
     raiz, _, generacion = cliente.observaciones
     assert raiz["output"]["fuentes"] == r.fuentes and "latencia_ms" in raiz["metadata"]
     assert generacion["model"] == cfg.gen_modelo
@@ -89,16 +98,16 @@ def test_una_consulta_deja_recuperacion_generacion_y_puntuaciones(cfg, sistema):
 def test_generacion_envia_cost_details_y_model_version_cuando_se_conocen(sistema):
     almacen, prov, indice_id = sistema
     cliente = ClienteFalso()
-    cfg_real = config(gen_modelo="gemini-3.5-flash-lite")
+    cfg_real = config(gen_modelo="google/gemini-3.5-flash-lite")
     gen = GeneradorSimulado(
-        "TLS 1.3 [01-arquitectura-aethercloud]", tokens=(1000, 200), model_version="gemini-3.5-flash-lite-001"
+        "TLS 1.3 [01-arquitectura-aethercloud]", tokens=(1000, 200), model_version="google/gemini-3.5-flash-lite-001"
     )
     with Trazador(cliente).consulta("run-2", "T01", cfg_real, PREGUNTA) as traza:
         responder(cfg_real, almacen, Proveedores(prov.embeddings, gen), indice_id, PREGUNTA, traza)
     generacion = cliente.observaciones[2]
     assert generacion["usage_details"] == {"input": 1000, "output": 200}
     assert generacion["cost_details"] == {"input": 0.0003, "output": 0.0005, "total": 0.0008}
-    assert generacion["metadata"] == {"model_version": "gemini-3.5-flash-lite-001"}
+    assert generacion["metadata"] == {"model_version": "google/gemini-3.5-flash-lite-001"}
 
 
 def test_generacion_sin_tarifa_no_envia_cost_details(sistema):
@@ -125,7 +134,7 @@ def test_el_consumo_del_evaluador_va_en_otra_traza(cfg):
     # La nota evaluable se cuelga de la traza de la CONSULTA; la no evaluable no se publica.
     assert [(p["name"], p["value"], p["trace_id"]) for p in cliente.puntuaciones] == [("faithfulness", 0.75, traza_consulta)]
     (obs,) = cliente.observaciones
-    assert obs["as_type"] == "evaluator" and obs["model"] == "gemini-3.8-flash"
+    assert obs["as_type"] == "evaluator" and obs["model"] == "anthropic/claude-haiku-5.5"
     assert obs["trace_context"]["trace_id"] != traza_consulta
     assert obs["usage_details"] == {"input": 2000, "output": 400}
     assert obs["cost_details"] == {"total": 0.0035}
@@ -158,9 +167,9 @@ def test_los_argumentos_existen_en_el_sdk_real_sin_enviar_nada(sistema):
     from langfuse import Langfuse
 
     almacen, prov, indice_id = sistema
-    cfg = config(gen_modelo="gemini-3.5-flash-lite")
+    cfg = config(gen_modelo="google/gemini-3.5-flash-lite")
     gen = GeneradorSimulado(
-        "TLS 1.3 [01-arquitectura-aethercloud]", tokens=(1000, 200), model_version="gemini-3.5-flash-lite-001"
+        "TLS 1.3 [01-arquitectura-aethercloud]", tokens=(1000, 200), model_version="google/gemini-3.5-flash-lite-001"
     )
     cliente = Langfuse(
         public_key="pk-lf-prueba", secret_key="sk-lf-prueba", base_url="http://127.0.0.1:9", tracing_enabled=False

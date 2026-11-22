@@ -22,8 +22,10 @@ FILAS = (
     ("answer_relevancy (media)", "generacion.answer_relevancy.media"),
     ("answer_relevancy (cobertura)", "generacion.answer_relevancy.cobertura"),
     ("latencia mediana (ms)", "operacion.latencia_ms_mediana"),
-    ("coste del sistema (USD, estimado)", "operacion.sistema.coste_usd_estimado"),
-    ("coste del evaluador (USD, estimado)", "operacion.evaluador.coste_usd_estimado"),
+    ("latencia p95 (ms)", "operacion.produccion.latencia_ms_p95"),
+    ("coste por consulta (USD)", "operacion.produccion.coste_usd_por_consulta"),
+    ("coste del sistema (USD)", "operacion.sistema.coste_usd_estimado"),
+    ("coste del evaluador (USD)", "operacion.evaluador.coste_usd_estimado"),
 )
 
 
@@ -32,9 +34,13 @@ class ComparacionInvalida(Exception):
 
 
 def variable_cambiada(a: dict, b: dict) -> str:
-    for campo in ("conjunto", "huella_conjunto", "perfil", "modelos", "n_casos"):
+    for campo in ("conjunto", "huella_conjunto", "perfil", "n_casos"):
         if a[campo] != b[campo]:
             raise ComparacionInvalida(f"las dos ejecuciones no comparten {campo}")
+    # El modelo de embeddings debe ser el mismo (otro modelo = otro índice y otro umbral).
+    # El de generación puede ser LA variable comparada: lo comprueba la configuración de abajo.
+    if a["modelos"].get("embeddings") != b["modelos"].get("embeddings"):
+        raise ComparacionInvalida("las dos ejecuciones no comparten el modelo de embeddings")
     ev_a = (a.get("generacion") or {}).get("evaluador")
     ev_b = (b.get("generacion") or {}).get("evaluador")
     if ev_a != ev_b:

@@ -23,6 +23,7 @@ head -n 1 datos/test.jsonl | python -m json.tool
 uv run python s19.py ingestar --config A
 uv run python s19.py preguntar "¿Qué versión de TLS exigen las pasarelas perimetrales?"
 uv run python s19.py preguntar "¿Cuál es el horario de la cafetería de la oficina de Madrid?"
+uv run python s19.py chat          # el mismo grafo paso a paso en la TUI (1-7 guion, /ayuda, Esc sale)
 ```
 
 ## Vivo 2 · Recuperación y rechazo (diapositiva 14)
@@ -94,13 +95,18 @@ docker compose down -v           # recoger
 
 ## Perfil real
 
-**No ejecutado en esta preparación. Consume la API de Gemini: solo con el gasto autorizado.**
-Previsión de `estimar`: 566 llamadas como máximo, 0,57 USD estimados, cota superior 4,66 USD.
+**Ejecutado el 22/11/2026 (resultados en `resultados/ejemplo-real/`). Consume la API de OpenRouter: solo con el gasto autorizado.**
+Una pasada completa costó 1,29 USD medidos (1,20 del juez Claude Opus 5.5).
+Previsión de `estimar` con los modelos por defecto: 566 llamadas como máximo, 2,91 USD
+estimados, cota superior 24,90 USD (casi todo, el juez Claude Opus 5.5).
 
-En `.env`: `S19_PERFIL=real`, `GEMINI_API_KEY=…`. Después:
+En `.env`: `S19_PERFIL=real`, `OPENROUTER_API_KEY=…` y, si quieres, otros modelos
+(`S19_GEN_MODEL`, `S19_EMBEDDING_MODEL`, `S19_EVAL_LLM_MODEL`…; ver `.env.example`). Después:
 
 ```bash
-uv run python s19.py preflight
+uv run python s19.py catalogo      # precios y parámetros de los modelos elegidos (gratis)
+uv run python s19.py estimar
+uv run python s19.py preflight     # clave, modelos y parámetros; no llama a ningún modelo
 uv run python s19.py ingestar --config A --execute          # 41 embeddings
 uv run python s19.py ingestar --config B --execute          # 13 embeddings
 uv run python s19.py calibrar --config A --execute          # 8 embeddings (escribe la primera vez; usa --fijar para sobrescribir)
@@ -118,6 +124,29 @@ for c in A B; do
 done
 uv run python s19.py comparar resultados/real-test-A resultados/real-test-B --salida resultados/real-comparacion
 uv run python s19.py revision resultados/real-test-A
+```
+
+Si cambias el modelo de embeddings, su dimensión o sus plantillas, vuelve a `ingestar` A y B y
+a `calibrar --config A --execute --fijar`. Para comparar dos modelos de generación, añade a
+`datos/configuraciones.json` dos variantes que solo cambien `gen_modelo` y usa el mismo índice.
+
+### Evaluación de modelos (misma configuración, solo cambia el generador)
+
+```bash
+for m in MH MS; do
+  uv run python s19.py lote --env .env.sol-opus --conjunto test --config $m --salida resultados/real-test-$m --execute
+  (cd evaluador && uv run python evaluar.py ../resultados/real-test-$m --env ../.env.sol-opus --modo real --execute)
+  uv run python s19.py informe resultados/real-test-$m
+done
+uv run python s19.py comparar resultados/real-test-MH resultados/real-test-MS --salida resultados/real-comparacion-modelos
+```
+
+Ejecutado el 22/11/2026: `resultados/ejemplo-real/modelos/` (unos 1,0 USD, casi todo el juez).
+
+### Chat con modelos reales
+
+```bash
+uv run python s19.py chat --env .env.hydrogen-sol --execute    # dentro: /perfil sol-opus cambia de modelos
 ```
 
 Tests reales, también de pago:

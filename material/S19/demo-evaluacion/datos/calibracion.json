@@ -50,5 +50,60 @@
       }
     ],
     "aviso": "PERFIL DOBLE: embeddings por hash de palabras y generador extractivo locales. Estas cifras comprueban el funcionamiento del sistema de evaluación; NO miden ningún modelo."
+  },
+  "real": {
+    "umbral_evidencia": 0.5223,
+    "embedding_modelo": "openai/text-embedding-3-small",
+    "embedding_dim": 768,
+    "plantilla_documento": "{titulo}\n{texto}",
+    "plantilla_consulta": "{texto}",
+    "indice_id": "idx-40c1185fce4c",
+    "config_id": "A",
+    "conjunto": "validacion",
+    "decisiones_correctas": "7/8",
+    "fijado": "2026-11-22",
+    "similitudes": [
+      {
+        "caso_id": "V01",
+        "respondible": true,
+        "mejor_similitud": 0.6196
+      },
+      {
+        "caso_id": "V02",
+        "respondible": true,
+        "mejor_similitud": 0.78
+      },
+      {
+        "caso_id": "V03",
+        "respondible": true,
+        "mejor_similitud": 0.707
+      },
+      {
+        "caso_id": "V04",
+        "respondible": true,
+        "mejor_similitud": 0.7414
+      },
+      {
+        "caso_id": "V05",
+        "respondible": true,
+        "mejor_similitud": 0.5853
+      },
+      {
+        "caso_id": "V06",
+        "respondible": false,
+        "mejor_similitud": 0.7159
+      },
+      {
+        "caso_id": "V07",
+        "respondible": false,
+        "mejor_similitud": 0.3417
+      },
+      {
+        "caso_id": "V08",
+        "respondible": false,
+        "mejor_similitud": 0.4594
+      }
+    ],
+    "aviso": null
   }
 }

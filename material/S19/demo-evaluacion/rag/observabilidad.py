@@ -42,7 +42,9 @@ class _Traza:
 
     @contextmanager
     def paso(self, nombre: str, tipo: str = "span", **campos):
-        with self._cliente.start_as_current_observation(name=nombre, as_type=tipo, **campos) as obs:
+        # Hija EXPLÍCITA de la raíz `consulta-rag`: los nodos del grafo de LangGraph pueden
+        # ejecutarse en otro hilo y así la observación no depende del contexto del hilo.
+        with self._raiz.start_as_current_observation(name=nombre, as_type=tipo, **campos) as obs:
             yield obs
 
     def cerrar(self, *, salida, metadatos: dict, puntuaciones: dict):

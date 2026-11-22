@@ -16,6 +16,11 @@ Conjunto `validacion` (8 casos, huella `38340dbddf01`) · configuración `A` · 
 | Operación | latencia mediana | 9,8 ms | 8 consultas |
 | Operación | coste del sistema | sin dato USD | estimación |
 | Operación | errores del sistema | 0 | 8 casos |
+| Producción | latencia p95 | 14,1 ms | 8 consultas (máxima 14,1 ms) |
+| Producción | tasa de error | 0,00 | 0/8 consultas |
+| Producción | tasa de rechazo | 0,25 | 2 sin llamar al modelo · 6 llamadas al modelo |
+| Producción | coste por consulta | sin dato USD | generación + embeddings · 1.000 consultas ≈ sin dato USD |
+| Producción | peso del juez en el coste | sin dato | evaluar frente a responder |
 
 ## Casos fallados (se conservan todos)
 
