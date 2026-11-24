@@ -11,6 +11,7 @@ import pytest
 
 from rag import config as configuracion
 from rag.almacen import AlmacenMemoria
+from rag.escenarios import corpus_de
 from rag.ingesta import reconstruir_indice
 from rag.observabilidad import Trazador
 from rag.proveedores import EmbeddingsDoble
@@ -57,6 +58,11 @@ def test_ordenes_del_chat(entorno, almacen):
     m = _motor(entorno, almacen)
     assert m.interpretar("3").caso["caso_id"] == "T12"  # tercera pregunta del guion
     assert m.interpretar("t14").caso["caso_id"] == "T14"
+    t14 = m.interpretar("t14")
+    assert m.interpretar(t14.pregunta) == t14
+    m.corpus = "baja"
+    assert m.interpretar(t14.pregunta).caso is None
+    m.corpus = "base"
     assert m.interpretar("/perfil dos").tipo == "perfil" and m.interpretar("/perfil dos").argumento == "dos"
     assert m.interpretar("salir").tipo == "salir"
     libre = m.interpretar("¿Qué es AetherCloud?")
@@ -86,6 +92,25 @@ def test_cambiar_de_configuracion_usa_otro_indice(entorno, almacen):
     assert m.config_id == "B" and m.cfg.chunk_size == 900 and m.indice_id != indice_a
 
 
+def test_cambio_de_corpus_se_refleja_en_respuesta_y_traza(entorno, almacen):
+    """Cambia de versión en el mismo chat y verifica que un índice ausente deja activo el último válido."""
+    motor = _motor(entorno, almacen)
+    with corpus_de("alta") as carpeta:
+        indice = reconstruir_indice(motor.cfg, almacen, EmbeddingsDoble(), carpeta)
+    cliente = ClienteFalso()
+    motor.trazador = Trazador(cliente)
+    assert motor.comando(motor.interpretar("/corpus alta"))[0].kind == "hint"
+    for orden in ("/corpus baja", "/corpus desconocido"):
+        assert motor.comando(motor.interpretar(orden))[0].kind == "error"
+        assert (motor.corpus, motor.indice_id) == ("alta", indice.indice_id)
+    r = motor.preguntar("¿Cuántos minutos dura la reserva del telescopio Nébula?", None, lambda _: None)
+    meta = cliente.observaciones[0]["metadata"]
+    assert "30 minutos" in r.texto and meta["corpus"] == "alta" and meta["indice_id"] == indice.indice_id
+    assert "11-reglamento-nebula#01" in meta["fragmentos_en_prompt"]
+    motor.comando(motor.interpretar("/corpus base"))
+    assert motor.corpus == "base" and motor.indice_id != indice.indice_id
+
+
 def test_cada_paso_del_grafo_se_convierte_en_filas(entorno, almacen):
     m = _motor(entorno, almacen)
     pasos = []
@@ -102,7 +127,7 @@ def test_la_rama_de_rechazo_previo_se_ve_en_el_chat(entorno, almacen):
     m.preguntar("¿Cuál es el horario de la cafetería?", None, pasos.append)
     filas = [f for p in pasos for f in lineas_de_paso(p, 0.99, m.cfg.gen_modelo)]
     assert [f.kind for f in filas] == ["paso", "dato", "paso", "rechazo"]
-    assert "no se llama al modelo" in filas[2].text
+    assert "0 tokens de generación" in filas[2].text and "embedding" in filas[2].text
 
 
 def test_el_criterio_se_muestra_con_su_referencia(entorno, almacen):
@@ -126,13 +151,13 @@ def test_cada_pregunta_del_chat_deja_una_traza_como_las_del_lote(entorno, almace
 
 def test_el_controlador_pinta_el_turno_completo_sin_pantalla(entorno, almacen):
     tui = RagTUI(_motor(entorno, almacen))
-    tui.submit("1")  # T01, primera pregunta del guion
+    tui.submit(tui.motor.casos["T01"]["pregunta"])  # Tal como se pega desde el guion de clase.
     tui._hilo.join(timeout=10)
     tui.cola.drain()
     tipos = [f.kind for f in tui.lines()]
     assert tipos[-8:] == ["human", "paso", "dato", "paso", "paso", "bot", "hint", "criterio"]
     assert tui.busy() is False and tui.grafo()["ruta"] == ["recuperar", "generar", "comprobar"]
-    assert "sesión: 1 preguntas" in tui.ultimo()
+    assert "consultas en la sesión: 1 · generación:" in tui.ultimo()
 
 
 def test_un_comando_no_lanza_el_grafo(entorno, almacen):

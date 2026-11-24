@@ -50,7 +50,7 @@ a leer de OpenRouter antes de ejecutar el perfil real o al cambiar de modelo.
 
 Procedencia de cada imagen de la presentación: [fuentes/presentacion/README.md](fuentes/presentacion/README.md).
 
-## Punto de partida (diapositivas 3–5, consultadas el 20/11/2026)
+## Punto de partida (diapositivas 3–5 del deck anterior, consultadas el 20/11/2026; retiradas del recorrido el 22/11/2026)
 
 - Anthropic, [Define success criteria and build evaluations](https://docs.claude.com/en/docs/test-and-evaluate/develop-tests): criterios de éxito antes de evaluar y tres formas de puntuar (código, persona, LLM) con sus ventajas e inconvenientes.
 - Langfuse, [Evaluation overview](https://langfuse.com/docs/evaluation/overview): evaluación **online** sobre trazas de producción y **offline** antes de publicar, y ejemplos de producción convertidos en datasets.

@@ -157,6 +157,25 @@
         "verbosity"
       ]
     },
+    "openai/gpt-6.1-terra": {
+      "tipo": "chat",
+      "entrada": 1.0,
+      "salida": 5.0,
+      "contexto": 1050000,
+      "parametros": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools",
+        "verbosity"
+      ]
+    },
     "openai/gpt-6.2-sol": {
       "tipo": "chat",
       "entrada": 2.0,

@@ -246,6 +246,8 @@ INSTRUCCIONES = {
         "[05-sla-y-creditos-servicio]. Si los fragmentos no contienen la respuesta, responde "
         f"exactamente {NO_CONSTA} y nada más."
     ),
+    # Variante deliberadamente defectuosa para ensayar el control de regresión de S19.
+    "regresion-rechazo": f"Ante cualquier pregunta, responde exactamente {NO_CONSTA} y nada más.",
 }
 # v2 = v1 + UNA instrucción. Es la única diferencia entre los prompts de la comparación A/B.
 INSTRUCCIONES["v2"] = INSTRUCCIONES["v1"] + (

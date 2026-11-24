@@ -1,9 +1,10 @@
 """Langfuse: qué se registra y que el consumo del evaluador va en una traza aparte.
 
-Sin red: se usa un cliente falso que anota las llamadas, y el SDK real con el envío
-desactivado para comprobar que los nombres de los argumentos existen en langfuse 5.2.0.
+Sin red: se usa un cliente falso que anota las llamadas y un exportador en memoria
+para comprobar los atributos que conserva el SDK real de Langfuse.
 """
 
+import json
 from contextlib import contextmanager
 
 import pytest
@@ -133,9 +134,10 @@ def test_el_consumo_del_evaluador_va_en_otra_traza(cfg):
     traza_consulta = trazador.id_traza("run-1", "T01")
     # La nota evaluable se cuelga de la traza de la CONSULTA; la no evaluable no se publica.
     assert [(p["name"], p["value"], p["trace_id"]) for p in cliente.puntuaciones] == [("faithfulness", 0.75, traza_consulta)]
+    assert cliente.puntuaciones[0]["score_id"] == trazador.id_traza("run-1", "T01", ":ragas:faithfulness")
     (obs,) = cliente.observaciones
-    assert obs["as_type"] == "evaluator" and obs["model"] == "anthropic/claude-haiku-5.5"
-    assert obs["trace_context"]["trace_id"] != traza_consulta
+    assert (obs["name"], obs["as_type"], obs["model"]) == ("consumo-juez", "generation", EVALUADOR["llm"])
+    assert obs["trace_context"]["trace_id"] == trazador.id_traza("run-1", "T01", ":evaluador")
     assert obs["usage_details"] == {"input": 2000, "output": 400}
     assert obs["cost_details"] == {"total": 0.0035}
     assert obs["output"] == {"faithfulness": 0.75, "answer_relevancy": "nan"}
@@ -162,22 +164,47 @@ def test_tokens_y_coste_desconocidos_del_evaluador_no_se_envian_como_cero(cfg):
     assert cliente.observaciones[1]["cost_details"] is None
 
 
-def test_los_argumentos_existen_en_el_sdk_real_sin_enviar_nada(sistema):
-    """SDK real con `tracing_enabled=False`: valida firmas; no sale ningún dato de la máquina."""
+def test_republicar_solo_consumo_omite_las_puntuaciones_y_los_rechazos(cfg):
+    cliente = ClienteFalso()
+    trazador = Trazador(cliente)
+    rechazo = _puntuacion("faithfulness", None, "rechazo_sin_respuesta", tokens=(0, 0), coste_usd=0.0)
+    rechazo["consumo"]["llamadas_llm"] = 0
+
+    trazador.registrar_evaluador("run-1", "T01", cfg, [rechazo])
+    trazador.registrar_evaluador("run-1", "T01", cfg, [rechazo], solo_consumo=True)
+    trazador.registrar_evaluador("run-1", "T02", cfg, [_puntuacion("faithfulness", 1.0)], solo_consumo=True)
+
+    assert not cliente.puntuaciones
+    rechazo_obs, consumo_obs = cliente.observaciones
+    assert rechazo_obs["as_type"] == "evaluator"
+    assert "model" not in rechazo_obs
+    assert consumo_obs["as_type"] == "generation"
+    assert consumo_obs["trace_context"]["trace_id"] == trazador.id_traza("run-1", "T02", ":evaluador")
+
+
+def test_el_sdk_real_exporta_los_campos_de_consumo_del_juez(sistema, monkeypatch):
+    """El SDK acepta los parámetros aunque descarte algunos según el tipo de observación."""
     from langfuse import Langfuse
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
     almacen, prov, indice_id = sistema
     cfg = config(gen_modelo="google/gemini-3.5-flash-lite")
     gen = GeneradorSimulado(
         "TLS 1.3 [01-arquitectura-aethercloud]", tokens=(1000, 200), model_version="google/gemini-3.5-flash-lite-001"
     )
-    cliente = Langfuse(
-        public_key="pk-lf-prueba", secret_key="sk-lf-prueba", base_url="http://127.0.0.1:9", tracing_enabled=False
-    )
+    exportador = InMemorySpanExporter()
+    cliente = Langfuse(public_key="pk-lf-prueba", secret_key="sk-lf-prueba", span_exporter=exportador)
+    monkeypatch.setattr(cliente, "create_score", lambda **_: None)
     trazador = Trazador(cliente)
     with trazador.consulta("run-sdk", "T01", cfg, PREGUNTA) as traza:
         r = responder(cfg, almacen, Proveedores(prov.embeddings, gen), indice_id, PREGUNTA, traza)
         traza.cerrar(salida={"respuesta": r.texto}, metadatos={}, puntuaciones={"recall_at_5": 1.0})
     trazador.registrar_evaluador("run-sdk", "T01", cfg, [_puntuacion("faithfulness", 0.5, coste_usd=0.0015)])
+    trazador.cerrar()
+    (juez,) = [span for span in exportador.get_finished_spans() if span.name == "consumo-juez"]
+    assert juez.attributes["langfuse.observation.type"] == "generation"
+    assert juez.attributes["langfuse.observation.model.name"] == EVALUADOR["llm"]
+    assert json.loads(juez.attributes["langfuse.observation.usage_details"]) == {"input": 1000, "output": 200}
+    assert json.loads(juez.attributes["langfuse.observation.cost_details"]) == {"total": 0.0015}
     assert len(trazador.id_traza("run-sdk", "T01")) == 32
     assert trazador.id_traza("run-sdk", "T01") == trazador.id_traza("run-sdk", "T01")

@@ -25,10 +25,12 @@ PREGUNTA = "¿Qué versión de TLS exigen las pasarelas perimetrales de AetherCl
     ],
 )
 def test_tabla_de_enrutado_tras_recuperar(similitud, umbral, esperado):
+    """Compara la decisión con una tabla que incluye la igualdad y la búsqueda vacía, dos casos límite del umbral."""
     assert hay_evidencia(similitud, umbral) is esperado
 
 
 def test_el_grafo_tiene_los_nodos_y_las_ramas_del_diagrama(cfg, sistema):
+    """Inspecciona los nodos y las aristas del grafo compilado para detectar conexiones distintas de las del diagrama."""
     almacen, prov, indice_id = sistema
     g = construir_grafo(cfg, almacen, prov, indice_id).get_graph()
     assert set(NODOS) <= set(g.nodes)
@@ -44,6 +46,8 @@ def test_el_grafo_tiene_los_nodos_y_las_ramas_del_diagrama(cfg, sistema):
 
 
 def test_con_evidencia_recorre_recuperar_generar_comprobar(sistema):
+    """Pregunta por TLS con un generador simulado y comprueba la ruta y el contador.
+    Una respuesta con evidencia debe pasar por la comprobación de fuentes y generar una sola vez."""
     almacen, prov, indice_id = sistema
     generador = GeneradorSimulado("Exigen TLS 1.3 [01-arquitectura-aethercloud].")
     estado = ejecutar_consulta(config(), almacen, Proveedores(prov.embeddings, generador), indice_id, PREGUNTA)
@@ -52,6 +56,8 @@ def test_con_evidencia_recorre_recuperar_generar_comprobar(sistema):
 
 
 def test_sin_evidencia_toma_la_rama_de_rechazo_previo_sin_llamar_al_modelo(sistema):
+    """Sube el umbral para forzar el rechazo. Comprueba la ruta, el contador y el coste de generación
+    para detectar llamadas innecesarias cuando falta evidencia."""
     almacen, prov, indice_id = sistema
     generador = GeneradorSimulado("no debería ejecutarse")
     estado = ejecutar_consulta(
@@ -65,6 +71,7 @@ def test_sin_evidencia_toma_la_rama_de_rechazo_previo_sin_llamar_al_modelo(siste
 
 
 def test_el_rechazo_del_modelo_pasa_por_generar_y_lo_detecta_comprobar(sistema):
+    """Hace que el generador devuelva NO_CONSTA y verifica que el grafo registra la llamada y el motivo de la abstención."""
     almacen, prov, indice_id = sistema
     generador = GeneradorSimulado(NO_CONSTA)
     estado = ejecutar_consulta(config(), almacen, Proveedores(prov.embeddings, generador), indice_id, PREGUNTA)
@@ -73,6 +80,8 @@ def test_el_rechazo_del_modelo_pasa_por_generar_y_lo_detecta_comprobar(sistema):
 
 
 def test_el_stream_entrega_cada_paso_en_orden_y_no_cambia_el_resultado(cfg, sistema):
+    """Ejecuta la misma pregunta con y sin streaming. Comprueba los pasos y compara la salida salvo las latencias
+    para que mostrar el progreso en la TUI conserve el resultado del RAG."""
     almacen, prov, indice_id = sistema
     pasos = []
     con_stream = responder(cfg, almacen, prov, indice_id, PREGUNTA, al_paso=pasos.append)
@@ -86,6 +95,7 @@ def test_el_stream_entrega_cada_paso_en_orden_y_no_cambia_el_resultado(cfg, sist
 
 
 def test_el_error_del_proveedor_atraviesa_el_grafo_sin_cambiar_de_tipo(cfg, sistema):
+    """Simula un timeout y exige que se propague al llamante para que pueda distinguirlo de un rechazo por falta de evidencia."""
     almacen, prov, indice_id = sistema
     generador = GeneradorSimulado(error=TimeoutError("sin respuesta"))
     with pytest.raises(TimeoutError):

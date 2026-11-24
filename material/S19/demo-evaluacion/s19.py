@@ -44,12 +44,14 @@ from rag.config import (
     calibracion_vale,
     cargar_calibracion,
     cargar_config,
+    cargar_env,
     estado_calibracion,
     modelos_evaluador,
 )
 from rag.consulta import recuperar, responder
 from rag.corpus import preparar
 from rag.costes import tarifas
+from rag.escenarios import ESCENARIOS, corpus_de
 from rag.ingesta import CORPUS, indice_esperado, reconstruir_indice
 from rag.observabilidad import Trazador
 from rag.proveedores import ErrorProveedor, crear_proveedores
@@ -203,6 +205,23 @@ def cmd_ingestar(args) -> int:
         f"Filas leídas de PostgreSQL: {almacen.contar(indice.indice_id)} · "
         f"llamadas de embeddings: {prov.embeddings.llamadas}"
     )
+    return 0
+
+
+def cmd_preparar_corpus(args) -> int:
+    """Deja cada versión disponible para el chat y reutiliza los índices completos en los reensayos."""
+    cfg = _config(args, calibrada=False)
+    prov = crear_proveedores(cfg, args.execute)
+    almacen = AlmacenPg(cfg.database_url)
+    almacen.preparar_esquema()
+    for nombre in ESCENARIOS:
+        with corpus_de(nombre) as carpeta:
+            indice = almacen.leer_indice(indice_esperado(cfg, carpeta))
+            accion = "reutilizado"
+            if indice is None or almacen.contar(indice.indice_id) != indice.n_fragmentos:
+                indice = reconstruir_indice(cfg, almacen, prov.embeddings, carpeta)
+                accion = "preparado"
+            print(f"{nombre}: {indice.indice_id} · {indice.n_documentos} documentos · {accion}", flush=True)
     return 0
 
 
@@ -531,6 +550,7 @@ def cmd_publicar_evaluador(args) -> int:
     """Envía a Langfuse las puntuaciones de Ragas y, en trazas aparte, el consumo del evaluador."""
     carpeta = Path(args.carpeta)
     _, puntuaciones, manifiesto = informe.cargar_ejecucion(carpeta)
+    cargar_env()
     trazador = Trazador.desde_entorno()
     if not trazador.activo or not puntuaciones:
         print("Nada que publicar: Langfuse apagado o sin puntuaciones.jsonl.")
@@ -538,10 +558,15 @@ def cmd_publicar_evaluador(args) -> int:
     cfg = aplicar_variante(cargar_config(), manifiesto["config"]["config_id"])
     for caso_id in sorted({p["caso_id"] for p in puntuaciones}):
         trazador.registrar_evaluador(
-            manifiesto["run_id"], caso_id, cfg, [p for p in puntuaciones if p["caso_id"] == caso_id]
+            manifiesto["run_id"],
+            caso_id,
+            cfg,
+            [p for p in puntuaciones if p["caso_id"] == caso_id],
+            solo_consumo=args.solo_consumo,
         )
     trazador.cerrar()
-    print(f"Publicadas las puntuaciones de {manifiesto['run_id']} en Langfuse.")
+    publicado = "el consumo del evaluador" if args.solo_consumo else "las puntuaciones y el consumo del evaluador"
+    print(f"Se ha enviado {publicado} de {manifiesto['run_id']} a Langfuse.")
     return 0
 
 
@@ -562,6 +587,7 @@ def main(argv: list[str] | None = None) -> int:
 
     nuevo("preflight", cmd_preflight)
     nuevo("ingestar", cmd_ingestar, execute=True)
+    nuevo("preparar-corpus", cmd_preparar_corpus, execute=True)
     nuevo("preguntar", cmd_preguntar, execute=True).add_argument("pregunta")
     nuevo("chat", cmd_chat, execute=True)
     sp = nuevo("calibrar", cmd_calibrar, execute=True)
@@ -591,7 +617,9 @@ def main(argv: list[str] | None = None) -> int:
     nuevo("catalogo", cmd_catalogo, config=False).add_argument(
         "--modelo", action="append", help="modelo adicional de OpenRouter (se puede repetir)"
     )
-    nuevo("publicar-evaluador", cmd_publicar_evaluador, config=False).add_argument("carpeta")
+    sp = nuevo("publicar-evaluador", cmd_publicar_evaluador, config=False)
+    sp.add_argument("carpeta")
+    sp.add_argument("--solo-consumo", action="store_true", help="publica consumo de una ejecución ya puntuada")
 
     args = p.parse_args(argv)
     if args.env:

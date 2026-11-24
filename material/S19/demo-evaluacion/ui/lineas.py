@@ -58,7 +58,7 @@ def lineas_de_paso(paso: dict, umbral: float, modelo: str) -> list[ChatLine]:
         ]
     if nodo == "rechazo_previo":
         return [
-            ChatLine("paso", "rechazo previo · no se llama al modelo · 0 tokens · 0 USD"),
+            ChatLine("paso", "rechazo previo · 0 tokens de generación · embedding de consulta ya calculado"),
             ChatLine("rechazo", cambios["respuesta"].texto + "\n\n_(evidencia insuficiente: rechazo previo)_"),
         ]
     if nodo == "generar":
@@ -94,7 +94,7 @@ def resumen_turno(r: Respuesta) -> ChatLine:
     return ChatLine(
         "hint",
         f"total {segundos:.2f} s (recuperar {lat.get('recuperacion', 0):.0f} ms · generar "
-        f"{lat.get('generacion', 0):.0f} ms) · tokens {tokens} · coste {_usd(r.coste_usd)}".replace(".", ","),
+        f"{lat.get('generacion', 0):.0f} ms) · generación: {tokens} tokens · {_usd(r.coste_usd)}".replace(".", ","),
     )
 
 
@@ -136,9 +136,11 @@ AYUDA = """Comandos:
   1 … 7            preguntas del guion del directo (T01, T13, T12, T14, T15, T17, T08)
   T01 … T20        cualquier pregunta del test, con su criterio y su referencia
   /casos           lista las preguntas del test
-  /perfil          lista los archivos .env.*; /perfil sol-opus carga .env.sol-opus
+  /perfil          lista los archivos .env.*; /perfil terra-opus carga .env.terra-opus
   /config A|B      fragmentos de 320 (A) o de 900 (B); también MH|MS
+  /corpus          muestra la versión activa; usa base, alta, baja, actualizacion o conflicto
   /ayuda           esta ayuda · salir o esc para terminar
+En el corpus base, pegar la pregunta exacta del test también muestra su criterio.
 Cualquier otro texto se pregunta tal cual al RAG. El juez de Ragas no actúa aquí: se aplica
 a los lotes (`s19.py lote` y después `evaluador/evaluar.py`)."""
 

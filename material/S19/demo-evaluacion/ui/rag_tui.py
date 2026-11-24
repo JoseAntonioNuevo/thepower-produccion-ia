@@ -84,6 +84,7 @@ class RagTUI:
             f"genera   {c.gen_modelo}\n"
             f"juez     {m.juez}\n"
             f"config   {m.config_id} · fragmentos {c.chunk_size}\n"
+            f"corpus   {m.corpus}\n"
             f"umbral   {umbral}\n"
             f"langfuse {langfuse}"
         )
@@ -176,7 +177,7 @@ class RagTUI:
                 f"similitud {sim}\n"
                 f"{'rechazo: ' + r.motivo_rechazo if r.rechazo else 'fuentes: ' + (', '.join(r.fuentes) or 'ninguna')}\n"
                 f"{filas[0].text}\n"
-                f"sesión: {self.motor.n_preguntas} preguntas · {coste}"
+                f"consultas en la sesión: {self.motor.n_preguntas} · generación: {coste}"
             )
 
             def aplicar() -> None:

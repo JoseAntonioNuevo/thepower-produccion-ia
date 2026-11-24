@@ -1,4 +1,4 @@
-"""Helpers visuales para la presentación S19.
+"""Helpers visuales para la presentación S19 (versión del 22/11/2026: sistema + tres pruebas).
 
 Copia adaptada de material/S17/fuentes/rediseno-visual/deck_lib.py (sistema visual del ejemplo
 que marca el diseño). Cambios: bloques y pie de S19, rutas de assets, y al final los añadidos
@@ -66,8 +66,17 @@ SERIF = "Georgia"
 SANS = "Arial"
 MONO = "Courier New"
 
-BLOCKS = ["Qué medir", "Recuperación", "Generación", "Testing", "Producción", "Práctica y cierre"]
-BLOCK_COLORS = [MINT, PINK, AMBER, VIOLET, BLUE, MINT_L]
+BLOCKS = ["Sistema", "Prueba 1 · Generador", "Prueba 2 · Juez", "Prueba 3 · Regresión", "Cierre", "Anexo"]
+BLOCK_COLORS = [MINT, AMBER, VIOLET, CORAL, MINT_L, MUTED]
+
+# Un color por etapa en todo el deck (diagramas, tarjetas y rótulos).
+ST_DATOS, ST_DATOS_BG = MINT, GREEN_BG      # corpus, fragmentos, PostgreSQL + pgvector
+ST_RECUP, ST_RECUP_BG = PINK, PINK_BG       # recuperar: 12 fragmentos → 5 documentos
+ST_GEN, ST_GEN_BG = AMBER, AMBER_BG         # generar y comprobar fuentes (modelo generador)
+ST_JUEZ, ST_JUEZ_BG = VIOLET, VIOLET_BG     # Ragas y el modelo juez
+ST_OBS, ST_OBS_BG = BLUE, BLUE_BG           # Langfuse: trazas, puntuaciones y consumo
+ST_FALLO, ST_FALLO_BG = CORAL, CORAL_BG     # lo que se pierde, falla o empeora
+ST_SIN = "8C9BA1"                            # rama sin modelo (rechazo previo)
 PIE = "thePower · AI Engineer · S19"
 
 WARNINGS = []
@@ -293,9 +302,9 @@ def footer(sl, n=None, block=None):
     runs = []
     for i, b in enumerate(BLOCKS, 1):
         act = i == block
-        runs.append((f"{i} {b}", {"bold": act, "color": BLOCK_COLORS[i - 1] if act else FAINT}))
+        runs.append((b, {"bold": act, "color": BLOCK_COLORS[i - 1] if act else FAINT}))
         if i < len(BLOCKS):
-            runs.append(("   ", {"color": FAINT}))
+            runs.append(("   ·   ", {"color": FAINT}))
     text(sl, 200, 513, 660, 12, [runs], size=8, align="c", check=False)
     text(sl, 870, 513, 47, 12, str(getattr(sl, "_num", n)), size=8.5, color=FAINT, align="r", check=False)
 
@@ -509,6 +518,11 @@ TAGS = {
     "codigo": ("CÓDIGO DE LA DEMO", MINT, DARK),
     "pendiente": ("PERFIL REAL · no ejecutado", CORAL, DARK),
     "real": ("PERFIL REAL · MEDIDO EL 22/11/2026", MINT, DARK),
+    "ensayo": ("ENSAYO REAL · 22/11/2026", MINT, DARK),
+    "recreacion": ("RECREACIÓN · no es una captura", AMBER, DARK),
+    "local": ("RESULTADO LOCAL · no está en Langfuse", CORAL, DARK),
+    "chat": ("OTRO TURNO REAL · chat del 22/11/2026", BLUE, DARK),
+    "prediccion": ("ANTES DE VER EL RESULTADO", MINT_L, DARK),
 }
 
 
@@ -586,7 +600,7 @@ def timing_note(a, b, extra=""):
 
 # ---------------------------------------------------------------- añadidos para S19
 # Estilo «sencillo» del ejemplo (diapositivas de QR, caso, código y práctica): mismas medidas.
-NAV_SIMPLE = "Qué medir · Recuperación · Generación · Testing · Producción · Práctica"
+NAV_SIMPLE = "Sistema · Prueba 1 Generador · Prueba 2 Juez · Prueba 3 Regresión · Cierre"
 
 
 def header_s(sl, kicker, title, sub=None):
@@ -700,3 +714,90 @@ def closing(deck, ideas, preguntas, proxima, materiales):
     text(sl, 604, 388, 300, 12, materiales[0], size=9, color=MINT, bold=True)
     text(sl, 604, 404, 300, 56, materiales[1], size=10.5, color=TITLE)
     return sl
+
+
+# ---------------------------------------------------------------- añadidos del 22/11/2026 (sistema + pruebas)
+def logo(sl, name, x, y, w_max, h_max, align="l"):
+    """Logotipo dentro de una caja sin deformarlo. Devuelve (ancho, alto) usados."""
+    iw, ih = img_size(name, h=h_max)
+    if iw > w_max:
+        iw, ih = img_size(name, w=w_max)
+    dx = (w_max - iw) / 2 if align == "c" else 0
+    img(sl, name, x + dx, y + (h_max - ih) / 2, w=iw, h=ih)
+    return iw, ih
+
+
+def label(sl, x, y, w, t, color=MINT, size=9):
+    text(sl, x, y, w, size * 1.4, t.upper(), size=size, color=color, bold=True)
+
+
+def stage_card(sl, x, y, w, h, accent, fill=CARD, lab=None, line_c=None):
+    """Tarjeta con barra superior del color de la etapa y rótulo opcional."""
+    box(sl, x, y, w, h, fill=fill, line=line_c)
+    box(sl, x, y, w, 3.5, fill=accent, radius=0)
+    if lab:
+        label(sl, x + 12, y + 10, w - 24, lab, color=accent, size=8.5)
+
+
+def quote(sl, x, y, w, h, t, size=17, label_t=None, accent=MINT, fill=CARD):
+    """Pregunta destacada entre comillas, en Georgia."""
+    box(sl, x, y, w, h, fill=fill, line=BORDER)
+    box(sl, x, y, 4, h, fill=accent, radius=0)
+    yy = y + 9
+    if label_t:
+        label(sl, x + 16, yy, w - 30, label_t, color=accent, size=8.5)
+        yy += 16
+    text(sl, x + 16, yy, w - 30, y + h - yy - 6, f"«{t}»", size=size, font=SERIF, color=TITLE, anchor="m")
+
+
+def prediccion(sl, x, y, w, h, preguntas, lineas=None):
+    """Recuadro de predicción del grupo, con huecos para anotar."""
+    box(sl, x, y, w, h, fill="15302A", line=MINT_L, lw=1.25)
+    circle(sl, x + 12, y + 11, 26, MINT_L)
+    text(sl, x + 12, y + 14, 26, 20, "?", size=15, color=DARK, bold=True, align="c", font=SERIF, check=False)
+    text(sl, x + 46, y + 12, w - 56, 14, "PREDICCIÓN DEL GRUPO", size=9, color=MINT_L, bold=True)
+    text(sl, x + 46, y + 26, w - 56, 12, "antes de ver el resultado", size=8.5, color=MUTED)
+    yy = y + 50
+    paras = [{"runs": [(f"{i}  ", {"color": MINT_L, "bold": True}), (q, {})], "space": 5} for i, q in enumerate(preguntas, 1)]
+    hq = h - 56 - (len(lineas or []) * 24)
+    text(sl, x + 14, yy, w - 28, hq, paras, size=11, color=TITLE, space=5)
+    yy = y + h - 10 - len(lineas or []) * 24
+    for ln in lineas or []:
+        text(sl, x + 14, yy, w - 28, 14, ln, size=9.5, color=MUTED, check=False)
+        box(sl, x + 14 + len(ln) * 5.2 + 6, yy + 12, w - 34 - len(ln) * 5.2 - 6, 0.8, fill=MUTED, radius=0)
+        yy += 24
+
+
+def frag(sl, x, y, w, h, fid, runs, size=10.5, accent=ST_DATOS, fill=CARD, sub=None):
+    """Fragmento del corpus con su id y texto; `runs` permite resaltar el dato."""
+    box(sl, x, y, w, h, fill=fill, line=accent, lw=1)
+    text(sl, x + 10, y + 7, w - 20, 12, fid, size=8.5, font=MONO, color=accent, bold=True, check=False)
+    if sub:
+        text(sl, x + 10, y + 7, w - 20, 12, sub, size=8, color=MUTED, align="r", check=False)
+    text(sl, x + 10, y + 23, w - 20, h - 28, [runs], size=size, color=TEXT)
+
+
+def hl(t, color=MINT_L):
+    """Run resaltado para `text`/`frag`."""
+    return (t, {"bold": True, "color": color})
+
+
+def answer(sl, x, y, w, h, modelo, texto_runs, meta, accent=ST_GEN, size=11, fill=CARD, estado=None, estado_c=MINT):
+    """Respuesta de un modelo con sus metadatos (tokens, latencia, coste)."""
+    box(sl, x, y, w, h, fill=fill, line=accent, lw=1)
+    box(sl, x, y, w, 22, fill=accent, radius=0)
+    text(sl, x + 10, y + 4, w - 20, 14, modelo, size=10, color=DARK, bold=True, check=False)
+    if estado:
+        text(sl, x + 10, y + 4, w - 20, 14, estado, size=9, color=DARK, bold=True, align="r", check=False)
+    text(sl, x + 10, y + 30, w - 20, h - 30 - 30, [texto_runs], size=size, color=TITLE)
+    box(sl, x + 10, y + h - 27, w - 20, 0.8, fill=BORDER, radius=0)
+    text(sl, x + 10, y + h - 21, w - 20, 14, meta, size=8.5, color=MUTED, font=MONO, bold=True, check=False)
+
+
+def chip_row(sl, x, y, items, w=48, h=20, gap=4, size=8.5):
+    """Fila de fichas pequeñas: items = [(texto, relleno, borde, color_texto)]."""
+    for t, fill, ln, col in items:
+        box(sl, x, y, w, h, fill=fill, line=ln, radius=3)
+        text(sl, x, y + (h - size * 1.2) / 2, w, size * 1.3, t, size=size, color=col, bold=True, font=MONO, align="c", check=False)
+        x += w + gap
+    return x

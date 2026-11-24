@@ -29,6 +29,7 @@ from rag.config import (
     ruta_env,
 )
 from rag.consulta import Respuesta, responder
+from rag.escenarios import ESCENARIOS, corpus_de
 from rag.ingesta import indice_esperado
 from rag.observabilidad import Trazador
 from rag.proveedores import crear_proveedores
@@ -58,6 +59,7 @@ class MotorChat:
         carpeta_env: Path = RAIZ,
     ):
         self.execute, self.config_id, self._fabrica_almacen = execute, config_id, fabrica_almacen
+        self.corpus = "base"
         self.carpeta_env = carpeta_env  # dónde busca `/perfil` los archivos .env.*
         self.sesion = sesion or f"chat-{dt.datetime.now():%Y%m%d-%H%M%S}"
         self.casos = {c["caso_id"]: c for c in conjuntos.cargar("test")}
@@ -70,13 +72,20 @@ class MotorChat:
         cfg = cargar_calibracion(aplicar_variante(cargar_config(), self.config_id))
         proveedores = crear_proveedores(cfg, self.execute)  # el perfil real exige --execute
         almacen = self._fabrica_almacen(cfg.database_url)
-        indice_id = indice_esperado(cfg)
-        if almacen.leer_indice(indice_id) is None:
-            orden = f"python s19.py ingestar --config {self.config_id}" + (" --execute" if cfg.perfil == "real" else "")
-            raise ErrorIndice(f"el índice {indice_id} está vacío: ejecuta antes `{orden}`")
+        indice_id = self._indice_preparado(self.corpus, cfg, almacen)
         self.cfg, self.proveedores, self.almacen, self.indice_id = cfg, proveedores, almacen, indice_id
         self.trazador = Trazador.desde_entorno()
         self.juez = modelos_evaluador()[0] if cfg.perfil == "real" else "doble (sin modelo)"
+
+    def _indice_preparado(self, nombre, cfg, almacen):
+        """Calcula la huella de esa versión y exige que el índice exista antes de activarlo."""
+        with corpus_de(nombre) as carpeta:
+            indice_id = indice_esperado(cfg, carpeta)
+        if almacen.leer_indice(indice_id) is None:
+            comando = "ingestar" if nombre == "base" else "preparar-corpus"
+            orden = f"python s19.py {comando} --config {self.config_id} --env {self.perfil}"
+            raise ErrorIndice(f"falta el índice {indice_id}: {orden}" + (" --execute" if cfg.perfil == "real" else ""))
+        return indice_id
 
     @property
     def perfil(self) -> str:
@@ -128,7 +137,7 @@ class MotorChat:
             partes = texto[1:].split(maxsplit=1)
             comando = partes[0].lower() if partes else ""
             argumento = partes[1].strip() if len(partes) > 1 else ""
-            if comando in {"ayuda", "casos", "perfil", "config"}:
+            if comando in {"ayuda", "casos", "perfil", "config", "corpus"}:
                 return Orden(comando, argumento)
             return Orden("desconocido", comando)
         if texto.isdigit() and 1 <= int(texto) <= len(GUION):
@@ -137,13 +146,31 @@ class MotorChat:
         if _CASO.fullmatch(texto) and texto.upper() in self.casos:
             caso = self.casos[texto.upper()]
             return Orden("pregunta", pregunta=caso["pregunta"], caso=caso)
-        return Orden("pregunta", pregunta=texto)
+        # Las referencias del test corresponden al corpus base. Reconoce también su pregunta literal pegada en el chat.
+        caso = None
+        if self.corpus == "base":
+            caso = next((c for c in self.casos.values() if c["pregunta"] == texto), None)
+        return Orden("pregunta", pregunta=texto, caso=caso)
 
     def comando(self, orden: Orden) -> list[ChatLine]:
         if orden.tipo == "ayuda":
             return [ChatLine("hint", AYUDA)]
         if orden.tipo == "casos":
             return [ChatLine("hint", lista_de_casos(list(self.casos.values())))]
+        if orden.tipo == "corpus":
+            nombre = orden.argumento.lower()
+            if nombre not in ESCENARIOS:
+                return [
+                    ChatLine(
+                        "error" if nombre else "hint", f"Corpus actual: {self.corpus}. Opciones: {', '.join(ESCENARIOS)}"
+                    )
+                ]
+            try:
+                indice_id = self._indice_preparado(nombre, self.cfg, self.almacen)
+            except ErrorIndice as exc:
+                return [ChatLine("error", str(exc))]
+            self.corpus, self.indice_id = nombre, indice_id
+            return [ChatLine("hint", f"Corpus {nombre} · índice {indice_id}")]
         if orden.tipo == "perfil":
             if not orden.argumento:
                 marcas = [("→ " if p == self.perfil else "  ") + p for p in self.perfiles()]
@@ -174,6 +201,9 @@ class MotorChat:
                 salida={"respuesta": r.texto, "fuentes": r.fuentes, "rechazo": r.rechazo},
                 metadatos={
                     "origen": "chat",
+                    "corpus": self.corpus,
+                    "indice_id": self.indice_id,
+                    "fragmentos_en_prompt": [c["fragmento_id"] for c in r.contextos],
                     "perfil_env": self.perfil,
                     "caso_test": caso["caso_id"] if caso else None,
                     "documentos_recuperados": r.documentos_recuperados,

@@ -304,3 +304,286 @@ listo para cuando haya claves. Código copiado y adaptado, sin depender de aquel
 
 Pendiente: claves de Langfuse y prueba de envío; ver el chat en la terminal de José; revisión
 manual humana de `resultados/ejemplo-real/test-A/revision-manual.csv`.
+
+## Langfuse Cloud · 22/11/2026
+
+Región UE (`https://cloud.langfuse.com`), organización `thePower`, plan Hobby y
+proyecto [s19-evaluacion](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l).
+La sesión [langfuse-prueba-hydrogen](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l/sessions/langfuse-prueba-hydrogen)
+muestra 16 trazas: 8 de consulta y 8 del evaluador.
+
+### Ejecución
+
+Los comandos de Python se ejecutaron con `UV_NO_SYNC=1` y los entornos ya instalados.
+El portapapeles se vació después de copiar las claves. Los dos archivos de clase
+ignorados por Git quedaron con `S19_LANGFUSE=on` y el host de la UE. El `.env`
+activo siguió en `off`. Ambos preflights mostraron «Langfuse: activado»,
+«Preflight correcto» y el índice A presente con 41 fragmentos.
+
+```bash
+uv run python s19.py preflight --env .env.hydrogen-sol
+uv run python s19.py preflight --env .env.sol-opus
+uv run python s19.py lote --env .env.hydrogen-sol --conjunto validacion --config A \
+  --run langfuse-prueba-hydrogen --salida resultados/langfuse-prueba-hydrogen --execute
+uv run python s19.py informe resultados/langfuse-prueba-hydrogen
+(cd evaluador && uv run python evaluar.py ../resultados/langfuse-prueba-hydrogen \
+  --env ../.env.hydrogen-sol --modo real --execute)
+uv run python s19.py informe resultados/langfuse-prueba-hydrogen
+uv run python -c 'from pathlib import Path; from rag.config import cargar_env; from s19 import main; cargar_env(Path(".env.hydrogen-sol")); raise SystemExit(main())' \
+  publicar-evaluador resultados/langfuse-prueba-hydrogen --env .env.hydrogen-sol
+```
+
+La publicación precargó el perfil con el lector de la demo porque
+`cmd_publicar_evaluador` inicializa el trazador antes de cargar la configuración.
+Como comprobación previa, el lector de `uv run --env-file` devolvió
+``Failed to parse environment file `.env.hydrogen-sol` at position 14`` en
+la línea JSON de configuración de razonamiento.
+
+### Casos y comprobación en Brave
+
+Antes de publicar Ragas, **Sessions** mostró 8 trazas `consulta-rag`.
+**Tracing** mostró sus 22 observaciones con `s19`, `config:A` y `perfil:real`.
+En V02 se comprobó el árbol con `recuperacion` y `generacion`, el prompt,
+la respuesta con la fuente `03-limites-y-cuotas-api`, la latencia de generación
+de 1,66 s, el modelo `google/gemini-4-hydrogen`, 390 tokens de entrada,
+161 de salida y 0,001793 USD en Langfuse. En **Scores** constaban
+`precision_at_5`, `recall_at_5`, `rechazo` y `acierto_criterio`.
+V07 y V08 tenían únicamente `recuperacion`, sin tokens ni coste visibles.
+
+| Caso | Resultado del lote local | Scores Ragas en la traza de consulta (faithfulness / answer_relevancy) | Traza del juez en Tracing |
+|---|---|---|---|
+| V01 | Respondió | 1,0000 / 0,9125 | Presente |
+| V02 | Respondió | 1,0000 / 0,9566 | Presente |
+| V03 | Respondió | 1,0000 / 0,9617 | Presente |
+| V04 | Respondió | 1,0000 / 0,9316 | Presente |
+| V05 | Rechazo del generador en pregunta respondible | Sin scores Ragas | Presente, cero llamadas al juez |
+| V06 | Rechazo del generador | Sin scores Ragas | Presente, cero llamadas al juez |
+| V07 | Rechazo previo por `evidencia_insuficiente` | Sin scores Ragas | Presente, cero llamadas al juez |
+| V08 | Rechazo previo por `evidencia_insuficiente` | Sin scores Ragas | Presente, cero llamadas al juez |
+
+La interfaz de claves pide un nombre y un perfil de permisos. Se usó
+`Application`, que permite crear trazas y guardar scores. **Sessions** y
+**Tracing** son secciones separadas del proyecto. **Tracing** lista observaciones.
+Según el ancho del panel, los scores se abren desde **More tabs → Scores** y el
+modelo y los tokens desde **Show more details**.
+
+**Incidencia en la primera publicación del consumo del juez.** Las ocho trazas
+`evaluador-ragas` llegaron con la etiqueta `evaluador`. En V02,
+`openai/gpt-6.2-sol` apareció en los metadatos, con cinco llamadas al juez.
+Las columnas de tokens y coste quedaron sin valor incluso en V01–V04, donde
+`puntuaciones.jsonl` sí registra consumo. Por ejemplo, V02 registró localmente
+3.745 tokens de entrada, 253 de salida y 0,01064334 USD. En el SDK instalado
+(`langfuse==5.2.0`), `start_as_current_observation` aplica `model`,
+`usage_details` y `cost_details` a observaciones de tipo generación.
+`as_type="evaluator"` sigue la rama de spans y descarta esos campos. La
+publicación salió con código 0 y Langfuse mostró un total de sesión de unos
+0,013 USD, correspondiente al RAG. El juez Sol completó la evaluación, así
+que no se ejecutó la alternativa con Opus. Tras constatar el fallo de
+instrumentación, quedó sin ejecutar la prueba opcional del chat.
+
+**Gasto.** La lectura de `GET /api/v1/key` de OpenRouter pasó de
+10,12133902 a 10,06454528 USD de saldo. La diferencia fue 0,05679374 USD.
+Los resultados locales registraron aproximadamente 0,013036 USD del RAG y
+0,04375410 USD del evaluador. El índice ya estaba cargado y no hubo ingesta.
+
+### Corrección del consumo del juez · 22/11/2026
+
+El publicador usa una observación `generation` llamada `consumo-juez` cuando
+hay consumo. Así Langfuse conserva el modelo, los tokens y el coste en la traza
+`evaluador-ragas` del caso. El subcomando ya carga `--env` antes de inicializar
+Langfuse. Se reutilizaron `respuestas.jsonl` y `puntuaciones.jsonl`.
+
+```bash
+UV_NO_SYNC=1 uv run python s19.py publicar-evaluador resultados/langfuse-prueba-hydrogen \
+  --env .env.hydrogen-sol --solo-consumo
+```
+
+En Brave, **Tracing** mostró estas cuatro observaciones con el modelo
+`openai/gpt-6.2-sol`. La tabla redondea el coste a seis decimales.
+
+| Caso | Entrada | Salida | Coste visible (USD) |
+|---|---:|---:|---:|
+| V01 | 3.821 | 274 | 0,011023 |
+| V02 | 3.745 | 253 | 0,010643 |
+| V03 | 3.794 | 284 | 0,011057 |
+| V04 | 3.776 | 285 | 0,011031 |
+
+El desglose de V02 en **Show more details** confirmó 3.998 tokens en total.
+**Sessions** mantuvo las 16 trazas y mostró aproximadamente 0,057 USD
+de consumo histórico conjunto. **Scores** mantuvo las ocho puntuaciones de
+Ragas, dos por cada caso respondido. Las observaciones originales del juez
+se conservaron. En V02, la duración de la traza histórica que muestra Langfuse
+abarca el intervalo entre ambas publicaciones.
+
+El gasto nuevo en OpenRouter fue **0 USD**. La corrección solo envió a Langfuse
+consumo medido en la ejecución anterior. Pasaron 132 tests locales de la demo,
+2 de integración con PostgreSQL y 65 del repositorio, además de Ruff y
+`cfn-lint`.
+
+### Chat T12 con Hydrogen y Terra · 22/11/2026
+
+Se añadió el perfil local ignorado `.env.terra-opus` con
+`openai/gpt-6.1-terra` para generar y `anthropic/claude-opus-5.5` como juez.
+Se incorporó Terra al catálogo de precios y parámetros. El preflight del
+perfil confirmó Langfuse activo y el índice A de 41 fragmentos. Se conservó
+`.env.sol-opus` para los comandos de comparación ya documentados.
+
+```bash
+UV_NO_SYNC=1 uv run python s19.py preflight --env .env.terra-opus
+UV_NO_SYNC=1 uv run python s19.py chat --env .env.hydrogen-sol --execute
+```
+
+Se ejecutó el chat OpenTUI en una pseudoterminal interactiva porque la
+automatización de la app Terminal de macOS estaba bloqueada. En el mismo
+proceso se introdujo `3`, luego `/perfil terra-opus` y después `3`.
+El chat cerró con Esc y código 0.
+
+En Brave, [chat-20261122-155649](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l/sessions/chat-20261122-155649)
+mostró exactamente dos trazas `consulta-rag`. Ambas tenían `origen=chat`,
+`caso_test=T12` y las observaciones `recuperacion` y `generacion`.
+
+| Caso de la traza | `perfil_env` en Metadata | Modelo | Tokens totales | Coste visible (USD) |
+|---|---|---|---:|---:|
+| `01-T12` | `.env.hydrogen-sol` | `google/gemini-4-hydrogen` | 544 | 0,001782 |
+| `02-T12` | `.env.terra-opus` | `openai/gpt-6.1-terra` | 550 | 0,001338 |
+
+OpenRouter pasó de 10,06454528 a 10,06142396 USD de saldo. El gasto adicional
+fue 0,00312132 USD y solo corresponde a las consultas del chat. Pasaron
+los 18 tests locales de TUI y observabilidad.
+
+### Ensayo de las tres pruebas del directo · 22/11/2026
+
+- **Generador.** Hydrogen y Terra recibieron los mismos fragmentos, en el mismo orden,
+  para T01 y T12. Se usaron el perfil base `.env.terra-opus`, la variante A y `v1`.
+  Ambos citaron la fuente de TLS 1.3 en T01 y se abstuvieron después de generar en T12.
+  Se guardaron respuestas, fuentes, latencia, tokens y coste de las cuatro llamadas.
+- **Juez.** Se ejecutó Ragas con Sol y Opus sobre dos copias idénticas de V02,
+  manteniendo los mismos embeddings, parámetros y máximo de 1024 tokens. Ambos dieron
+  fidelidad 1,0000. La relevancia fue 0,9566 y 0,9585, con costes de 0,01064334 y
+  0,02860928 USD, respectivamente.
+- **Prompt.** Sobre la misma validación A, la configuración de las tres ejecuciones
+  difería solo en `prompt_version`. En `v1`, `v2` y `regresion-rechazo`, recall@5 fue
+  1,00. El prompt defectuoso pasó de 0/5 a 5/5 abstenciones incorrectas y de 4/5 a
+  0/5 aciertos frente a `v1`. El control dio 0 para la referencia y 1 para el
+  prompt defectuoso con `umbrales.real.json`. Ragas hizo cero llamadas en ese lote.
+
+Los resultados nuevos se guardaron en `demo-evaluacion/resultados/ensayo-tres-pruebas-20261122/`,
+ignorado por Git. Las comprobaciones nuevas se hicieron sobre esos archivos y la demostración
+de Langfuse enlaza las sesiones ya verificadas. El saldo de OpenRouter pasó de 10,06142388
+a 9,99732636 USD. El gasto nuevo fue **0,06409752 USD**.
+
+### Regresión al sustituir el juez en T09 · 22/11/2026
+
+Se compararon Hydrogen y Terra en los ocho casos de validación con `v1` y el mismo perfil
+base. Ambos acertaron 4/5. En V06, el criterio de rechazo penalizó una respuesta
+sustentada de Terra («Ninguna», seguida de las dos regiones que recoge el corpus), así que
+ese caso se reservó para hablar del criterio. En el diagnóstico de T08, T13 y T14, ambos
+modelos dieron los datos de referencia. En T14, Terra escribió `ms` donde el criterio
+literal esperaba «milisegundos».
+
+Se reprodujo una regresión del evaluador con T09 del test A. Sol y Opus recibieron
+exactamente la misma respuesta, pregunta y fragmentos, con las mismas opciones de Ragas,
+embeddings y máximo de 1024 tokens. La respuesta une un máximo de 45 minutos de mantenimiento
+al mes y un aviso con al menos 7 días naturales, tal como hace la fuente.
+
+| Juez | Faithfulness | Answer Relevancy | Coste de evaluar (USD) |
+|---|---:|---:|---:|
+| GPT‑6.2 Sol | 1,0000 | 0,7491 | 0,01283984 |
+| Claude Opus 5.5 | 0,0000 | 0,6911 | 0,05257002 |
+
+Se repitió Faithfulness conservando las afirmaciones y veredictos que devolvió cada juez.
+Sol extrajo una afirmación con ambas condiciones y la verificó. Opus extrajo dos
+afirmaciones que convertían cada condición en suficiente por sí sola. El verificador
+dio 0 a cada una por la condición omitida. La repetición volvió a dar 1,00 y 0,00.
+
+Los artefactos están en `demo-evaluacion/resultados/ensayo-regresion-modelo-20261122/`.
+El saldo de OpenRouter pasó de 9,99732636 a 9,90512232 USD. El gasto nuevo fue
+**0,09220404 USD**.
+
+## Presentación rehecha: sistema y tres pruebas · 22/11/2026
+
+El deck pasa de 32 a **20 diapositivas**: 15 de recorrido (portada, QR y recorrido, cuatro de
+repaso del sistema y tres pruebas con su diapositiva de pregunta y de resultado, más el cierre)
+y 5 de anexo (métricas, A/B 320 → 900, histórico Hydrogen–Sol, prompt NO_CONSTA y comandos).
+Se retiraron del recorrido los casos de uso genéricos, las tablas repetidas de conceptos, el
+detalle de denominadores, instalación y versiones, la ampliación CRAG y el esquema que daba
+Langfuse por no probado. Fuentes en `fuentes/presentacion/`; guion docente renumerado.
+
+| Comprobación | Resultado |
+|---|---|
+| `build.py` | 20 diapositivas; dos avisos conservadores de desborde (2 y 13) que caben en el render |
+| `check.py` | **CORRECTO**: 20 diapositivas con notas completas (franja, QUÉ ABRIR, PREGUNTA, Fuentes), 4 tablas nativas, 23 imágenes, solo Arial/Georgia/Courier New, nada fuera del lienzo, QR de S16 y logotipo de thePower byte a byte. El recuento esperado pasa de 32 a 20 |
+| Render | LibreOffice del runtime local → PDF de 20 páginas (960 × 540 pt) → PNG con `pdftoppm`; las 20 revisadas a tamaño completo o en hojas de dos y en hoja de contactos del PDF final |
+| Correcciones tras verlas | Resaltado del Markdown (4), latencias tapadas por las marcas (6), fragmento partido (8), fichas fuera de su columna (10, 11), barras de coste sin ancho (12), texto de la respuesta sobre el pie (13), rótulos solapados (14), comillas invertidas literales (15, 17) |
+| Logotipos nuevos | OpenTUI (opentui.com), LangGraph (repositorio oficial), OpenRouter (kit de marca openrouter.ai/brand), descargados el 22/11/2026 a `.build/s19/descargas/` y convertidos con `preparar_assets.py`; pgvector sin marca propia: nombre e icono genérico |
+| Datos de las diapositivas | Tomados de archivos guardados; no se llamó a ningún modelo. Se ejecutaron en local, sin coste, la comprobación de T09 (Sol 0, Opus 1), `s19.py regresion` sobre `ejemplo-real/test-A` (PASA con T09 = 0 y fidelidad media 0,9231), `validacion-A` (PASA) y `regresion-rechazo` (FALLA), y `s19.py estimar` |
+| Históricos intactos | SHA-256 de los 64 archivos de `resultados/ejemplo-real/modelos/`, `ensayo-tres-pruebas-20261122/`, `ensayo-regresion-modelo-20261122/` y `langfuse-prueba-hydrogen/` idénticos antes y después; `guion-directo-modelos.md` sin cambios |
+| `ruff` de la raíz | Limpio (`material/*/fuentes` está excluido en `pyproject.toml`) |
+| Ajustes tras la revisión de José | 2: la línea pregunta «¿coinciden los jueces en T09?» y no adelanta el fallo. 5: el rechazo previo tiene «0 tokens de generación», porque `recuperar` ya calculó el embedding de la pregunta. 9: en la misma sesión se vuelve antes con `/perfil hydrogen-sol` (o se usa el comando completo de la 7). 13: «si el contexto respalda todas las afirmaciones, esperamos fidelidad 1,00». 4, 6 y 10 aligeradas: documento, fragmento y vector; qué recuperó, qué respondió y cuánto costó; el fragmento del plan en el puesto 6 frente a los 4 leídos. Guion docente y anexo de comandos alineados |
+| SHA-256 PPTX | `64ac05c7c2644cda3d13e5b2d595aceaeda6c1dd808a9e99a77b37d7985346fc` |
+| SHA-256 PDF | `e6fee4d1b8de78cb1fcd4de5c7d29c17f01486106e33bc26b50a5a9e732529be` |
+
+La traza de la diapositiva 6 es una recreación rotulada con los datos de V02 comprobados en
+Brave; no hay capturas. Los veredictos de T09 se rotulan como resultado local. No se ha abierto
+el PPTX en PowerPoint ni en Keynote. El ZIP de alumnos no se ha regenerado: `docs/comandos.md`
+cambió solo en los números de diapositiva de sus encabezados.
+
+## Ensayo del directo · 24/11/2026
+
+Se ejecutó OpenTUI en una terminal interactiva de tmux y se abrió Langfuse en Brave.
+Computer Use denegó el control directo de Warp. En la repetición descrita al final, José
+conectó Warp como espectador de la sesión de tmux y confirmó que veía la TUI.
+Los dos perfiles reales pasaron el preflight con el índice A de 41 fragmentos.
+Ambos usaron el prompt v1 y dejaron la temperatura sin fijar.
+
+| Caso | Resultado del chat | Tokens de generación (entrada → salida) | Coste de generación mostrado (USD) |
+|---|---|---|---:|
+| T17 · Hydrogen | Rechazo previo, similitud 0,3807 frente a umbral 0,5223 | 0 → 0 | 0 |
+| T01 · Hydrogen | TLS 1.3 con cita de arquitectura | 404 → 149 | 0,001723 |
+| T01 · Terra | TLS 1.3 con la misma cita | 366 → 30 | 0,000516 |
+| T12 · Hydrogen | Abstención tras generar, recall@5 de 1,00 | 383 → 203 | 0,002097 |
+| T12 · Terra | Abstención tras generar, recall@5 de 1,00 | 353 → 51 | 0,000608 |
+
+En Brave se vieron las tres trazas de [T17 y T01](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l/sessions/chat-20261124-131903)
+y las dos de [T12](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l/sessions/chat-20261124-131914).
+Se comprobaron el perfil, el modelo, los tokens y el coste de cada turno de T12. La suma
+de las cifras de generación mostradas es 0,004944 USD. El coste del embedding de cada
+consulta queda fuera de esa suma.
+Se corrigieron los rótulos de coste de OpenTUI y se repitió T17 con la versión corregida.
+
+En V02 se compararon las entradas congeladas byte a byte y se leyeron las puntuaciones
+guardadas. Ambos jueces dieron fidelidad 1,00. En Brave se comprobó el respaldo de
+«4 MiB», la puntuación de la consulta y la observación `consumo-juez` de Sol (0,010643 USD).
+En T09 se volvió a ejecutar el control por caso sobre los veredictos guardados.
+Sol devolvió 0 y Opus devolvió 1. El control agregado del test A pasó.
+
+Se regeneró el ZIP del alumno, se verificaron sus 197 archivos contra las fuentes y se
+instalaron los dos entornos desde los locks en una extracción limpia. El recorrido doble
+completó los 56 casos de los cuatro lotes A/B sin errores de ejecución. Se generaron los
+informes, la comparación y la plantilla de revisión. El control pasó en la referencia y
+falló con la recuperación degradada. Pasaron 132 pruebas de la demo, 2 de pgvector,
+19 del evaluador y 65 del repositorio, además de Ruff, cfn-lint y el preflight offline.
+
+### Repetición visible en Warp · 24/11/2026
+
+Warp mostró la ventana compartida en modo de solo lectura. Otro cliente de tmux
+envió las teclas a OpenTUI. Se comprobó la respuesta en pantalla tras cada turno.
+
+| Caso y generador | Resultado | Tokens de entrada → salida | USD de generación mostrados |
+|---|---|---:|---:|
+| T17 · Hydrogen | Rechazo previo, similitud 0,3807 por debajo del umbral 0,5223 | 0 → 0 | 0 |
+| T01 · Hydrogen | TLS 1.3 con cita de arquitectura | 404 → 137 | 0,001633 |
+| T01 · Terra | TLS 1.3 con la misma cita | 366 → 30 | 0,000516 |
+| T12 · Hydrogen | Abstención tras generar, recall@5 de 1,00 | 383 → 290 | 0,002750 |
+| T12 · Terra | Abstención tras generar, recall@5 de 1,00 | 353 → 54 | 0,000623 |
+
+En Brave se comprobaron las tres trazas de [T17 y T01](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l/sessions/chat-20261124-132521)
+y las dos de [T12](https://cloud.langfuse.com/project/cmwrx9lak007pad0e19vlgk2l/sessions/chat-20261124-133413).
+En T17 apareció solo recuperación. En T12 se verificaron los dos perfiles, el modelo,
+el coste de generación y la abstención de los dos turnos. La suma de generación de
+esta repetición fue 0,005522 USD según los importes mostrados.
+
+En la ventana de jueces se compararon las entradas congeladas de V02 y T09 con
+`cmp`. En V02 ambos jueces dieron fidelidad 1,00 y relevancias 0,9566 y 0,9585.
+En T09 el control por caso devolvió 0 con Sol y 1 con Opus. El control agregado
+del test A pasó, al igual que las 132 pruebas locales de la demo.

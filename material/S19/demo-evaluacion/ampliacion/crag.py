@@ -31,14 +31,15 @@ DECISIONES = ("responder", "reformular", "rechazar")
 
 
 def decidir(mejor_similitud: float | None, umbral: float, intento: int, max_intentos: int) -> str:
-    """Regla de enrutado. Pura y sin modelo: se prueba con una tabla de casos."""
+    """Elige la acción según la evidencia y los intentos disponibles. Permite responder con respaldo,
+    reformular mientras quede otro intento y rechazar al agotarlos."""
     if mejor_similitud is not None and mejor_similitud >= umbral:
         return "responder"
     return "reformular" if intento < max_intentos else "rechazar"
 
 
 def reformular_doble(pregunta: str) -> str:
-    """Reformulador de prueba: deja solo las palabras con contenido. Uno real usaría un modelo."""
+    """Extrae términos de la pregunta y elimina repeticiones conservando el orden para ensayar reintentos sin usar un LLM."""
     return " ".join(dict.fromkeys(terminos(pregunta)))
 
 
@@ -73,9 +74,12 @@ def construir_crag(
     max_intentos: int = 2,
     regla: Callable[[float | None, float, int, int], str] = decidir,
 ):
-    """Compila el agente. `regla` se puede sustituir en los tests para provocar un fallo."""
+    """Conecta búsqueda, reformulación, respuesta y rechazo en un grafo. Acepta una regla de decisión
+    y un reformulador intercambiables para probar cómo se comporta el agente en cada intento."""
 
     def nodo_recuperar(e: EstadoCrag) -> EstadoCrag:
+        """Busca con la consulta actual, aplica la regla y registra la decisión y el contador de búsquedas.
+        Así se puede reconstruir la trayectoria del agente."""
         rec = recuperar(cfg, almacen, proveedores.embeddings, indice_id, e["consulta"])
         decision = regla(rec.mejor_similitud, cfg.umbral_evidencia, e["intento"], max_intentos)
         return {
@@ -86,10 +90,12 @@ def construir_crag(
         }
 
     def nodo_reformular(e: EstadoCrag) -> EstadoCrag:
+        """Reescribe la consulta e incrementa el número de intento antes de volver a buscar."""
         return {"consulta": reformular(e["consulta"]), "intento": e["intento"] + 1, "ruta": [*e["ruta"], "reformular"]}
 
     def nodo_responder(e: EstadoCrag) -> EstadoCrag:
-        # Responde con la consulta que encontró evidencia: el grafo del RAG hace recuperar → generar.
+        """Ejecuta el RAG con la consulta que encontró evidencia y cuenta si llegó al generador
+        para distinguir el coste de responder del coste de reintentar la búsqueda."""
         r = responder(cfg, almacen, proveedores, indice_id, e["consulta"])
         generacion = 0 if r.motivo_rechazo == "evidencia_insuficiente" else 1
         return {
@@ -99,6 +105,7 @@ def construir_crag(
         }
 
     def nodo_rechazar(e: EstadoCrag) -> EstadoCrag:
+        """Añade el rechazo a la trayectoria y conduce al fin del grafo cuando se han agotado los intentos."""
         return {"ruta": [*e["ruta"], "rechazar"]}
 
     grafo = StateGraph(EstadoCrag)
@@ -115,7 +122,7 @@ def construir_crag(
 
 
 def limite_pasos(max_intentos: int) -> int:
-    """Pasos máximos del grafo: recuperar y reformular por intento, más el nodo final."""
+    """Calcula un límite de seguridad para LangGraph a partir del máximo de intentos, para cortar un posible bucle."""
     return 2 * max_intentos + 1
 
 
@@ -129,7 +136,8 @@ def crag(
     max_intentos: int = 2,
     regla: Callable[[float | None, float, int, int], str] = decidir,
 ) -> Trayectoria:
-    """Como mucho `max_intentos` recuperaciones y UNA generación. Nunca un bucle sin límite."""
+    """Inicia el agente en el intento uno y ejecuta el grafo con un límite de pasos.
+    Devuelve decisiones, llamadas y respuesta para comprobar cómo terminó cada consulta."""
     if max_intentos < 1:
         raise ValueError("max_intentos debe ser al menos 1")
     grafo = construir_crag(cfg, almacen, proveedores, indice_id, reformular, max_intentos, regla)

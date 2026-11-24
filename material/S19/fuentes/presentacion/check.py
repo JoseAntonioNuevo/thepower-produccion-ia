@@ -16,6 +16,7 @@ QR = os.path.join(REPO, "S16", "assets", "qr-ai-engineer.jpg")
 QR_VIEJO = os.path.join(REPO, "S17", "assets", "qr-ai-engineer.jpg")
 LOGO = os.path.join(REPO, "S17", "assets", "thepower-logo.png")
 FUENTES = {"Georgia", "Arial", "Courier New"}
+ESPERADAS = 20  # 15 del recorrido de clase + 5 de anexo (deck del 22/11/2026)
 
 
 def sha(ruta):
@@ -52,8 +53,8 @@ for n, sl in enumerate(prs.slides, 1):
         if s.shape_type == 13:
             imagenes += 1
             blobs.add(hashlib.sha256(s.image.blob).hexdigest())
-if len(prs.slides) != 32:
-    fallos.append(f"se esperaban 32 diapositivas y hay {len(prs.slides)}")
+if len(prs.slides) != ESPERADAS:
+    fallos.append(f"se esperaban {ESPERADAS} diapositivas y hay {len(prs.slides)}")
 if fuentes - FUENTES:
     fallos.append(f"tipografías ajenas al sistema visual: {sorted(fuentes - FUENTES)}")
 if sha(QR) not in blobs:

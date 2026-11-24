@@ -50,12 +50,21 @@ pregunta ──► embedding ──► 12 fragmentos ──► 5 documentos dist
 
 ## Antes de empezar
 
+Para repetir las demos de clase, abre el [taller de S19](docs/taller-s19.md).
+La [práctica opcional](docs/ejercicio.md) contiene el ejercicio paso a paso.
+
 Necesitas **Python 3.12**, [uv](https://docs.astral.sh/uv/) y **Docker** en marcha. Los
 comandos son los mismos en macOS, Linux y Windows (PowerShell o Git Bash).
 
 ```bash
-cd demo-evaluacion
-uv sync                      # entorno del RAG (psycopg, openai, langfuse, langgraph, opentui, pytest, ruff)
+git clone https://github.com/JoseAntonioNuevo/thepower-evaluacion.git
+cd thepower-evaluacion
+```
+
+Si has descargado el ZIP, abre la carpeta que contiene `s19.py`. Desde esa carpeta:
+
+```bash
+uv sync --frozen             # instala las versiones del proyecto fijadas en uv.lock
 cp .env.example .env         # perfil doble por defecto; no hace falta ninguna clave
 docker compose up -d --wait  # PostgreSQL 17 + pgvector en 127.0.0.1:54519
 uv run python s19.py preflight
@@ -84,7 +93,7 @@ La primera responde citando `[01-arquitectura-aethercloud]`; la segunda se recha
 
 ```bash
 uv run python s19.py chat                                  # perfil doble: sin coste
-uv run python s19.py chat --env .env.sol-opus --execute    # perfil real con otro archivo de entorno
+uv run python s19.py chat --env .env.hydrogen-sol --execute  # perfil real: Gemini 4 Hydrogen
 ```
 
 Abre un chat en la terminal (necesita una terminal real: no funciona en una tubería). Cada
@@ -97,7 +106,7 @@ nodo activo y el camino recorrido.
 |---|---|
 | `1` … `7` | Preguntas del guion del directo (T01, T13, T12, T14, T15, T17, T08) |
 | `T01` … `T20` | Cualquier pregunta del test, con el veredicto del criterio y la respuesta de referencia |
-| `/perfil sol-opus` | Carga `.env.sol-opus` sin salir (cambia de modelos); `/perfil` lista los archivos |
+| `/perfil terra-opus` | Carga `.env.terra-opus` y cambia a GPT‑6.1 Terra en la misma sesión. `/perfil` lista los archivos |
 | `/config B` | Fragmentos de 900; también `A`, `MH`, `MS` |
 | `/casos`, `/ayuda`, `salir` o Esc | Lista del test, ayuda, salir |
 
@@ -206,13 +215,32 @@ Hay un ejemplo relleno en `resultados/ejemplo-doble/test-A/revision-manual-EJEMP
 ## Paso 8 · Tests
 
 ```bash
-uv run pytest                 # 131 tests con dobles; no usa red, Docker ni claves
+uv run pytest                 # 137 pasan; 1 fallo esperado por fuentes contradictorias
 uv run pytest -m db           # integración con pgvector (necesita el contenedor)
 uv run ruff check .
 (cd evaluador && uv run pytest)   # 19 tests del evaluador, también sin red
 ```
 
 Los tests marcados `llm` llaman a modelos de pago y **no se ejecutan por defecto**.
+
+Para ver cómo cambia la respuesta al añadir, retirar o actualizar un documento, ejecuta
+`uv run pytest -q -s tests/test_cambios_corpus.py`. Cada caso reindexa una copia temporal
+y consulta el grafo con proveedores dobles. Para proyectar el conflicto de fuentes como
+un fallo visible, añade `-k conflicto --runxfail --tb=short`: llegan ambos plazos al contexto
+y el generador extractivo reproduce los dos. El criterio de este ejercicio exige abstención.
+
+Para contrastar los mismos cambios **en el chat real**, ejecuta desde la demo:
+
+```bash
+uv run --frozen python s19.py preparar-corpus --config A --env .env.hydrogen-sol --execute
+S19_PROMPT_VERSION=v1 S19_GEN_TEMPERATURE='' uv run --frozen python s19.py chat --config A --env .env.hydrogen-sol --execute
+```
+
+El ejemplo usa el perfil local del profesor. En otro equipo usa tu archivo de perfil real.
+La primera preparación crea índices y consume embeddings; repetirla reutiliza los índices completos.
+Dentro del chat, `/corpus base|alta|baja|actualizacion|conflicto` selecciona una versión ya preparada.
+En Langfuse, la raíz de cada turno contiene `corpus`, `indice_id` y `fragmentos_en_prompt`.
+El cambio solo afecta a ese chat; los lotes de evaluación siguen usando el corpus de referencia.
 
 Además de formato, fuentes y errores, los tests comprueban **trayectorias**: qué nodos recorre
 cada pregunta en el grafo de consulta (`tests/test_grafo.py`), que el rechazo previo no llama al
@@ -222,7 +250,7 @@ corta una regla rota (`tests/test_enrutado.py`). El chat se prueba sin pantalla 
 ## Paso 9 · Recoger
 
 ```bash
-docker compose down -v
+docker compose stop           # conserva los índices para la siguiente sesión
 ```
 
 ## Resultados de ejemplo (perfil doble, 17/11/2026)

@@ -1,6 +1,6 @@
 # S19 · Comandos en el orden de la presentación
 
-Todos se ejecutan desde `demo-evaluacion/` con el perfil `doble` (sin claves, sin coste).
+Ejecuta los comandos desde la carpeta que contiene `s19.py`. Los bloques iniciales usan el perfil `doble` (sin claves, sin coste).
 Sustituye `mi-` por el prefijo que quieras: `resultados/` está ignorado por Git.
 
 ## Preparación (antes de clase)
@@ -15,7 +15,7 @@ uv run python s19.py ingestar --config A
 uv run python s19.py ingestar --config B
 ```
 
-## Vivo 1 · Reconstruir desde cero (diapositiva 10)
+## Vivo 1 · Reconstruir desde cero (diapositivas 4–5)
 
 ```bash
 uv run python s19.py preflight
@@ -26,7 +26,7 @@ uv run python s19.py preguntar "¿Cuál es el horario de la cafetería de la ofi
 uv run python s19.py chat          # el mismo grafo paso a paso en la TUI (1-7 guion, /ayuda, Esc sale)
 ```
 
-## Vivo 2 · Recuperación y rechazo (diapositiva 14)
+## Vivo 2 · Recuperación y rechazo (anexo, diapositiva 16)
 
 ```bash
 uv run python s19.py calibrar --config A
@@ -38,7 +38,7 @@ Si ya existe calibración fijada para ese perfil en `datos/calibracion.json`, `c
 el umbral calculado junto al fijado sin sobrescribir el archivo (añade `--fijar` para
 actualizarlo).
 
-## Vivo 3 · Generación con el evaluador aislado (diapositiva 21)
+## Vivo 3 · Generación con el evaluador aislado (diapositivas 11–12)
 
 ```bash
 (cd evaluador && uv run python evaluar.py ../resultados/mi-validacion-A)
@@ -48,7 +48,7 @@ uv run python s19.py informe resultados/mi-validacion-A
 
 Revisión manual de ejemplo: `resultados/ejemplo-doble/test-A/revision-manual-EJEMPLO-rellena.csv`.
 
-## Vivo 4 · Tests y control de regresión (diapositiva 26)
+## Vivo 4 · Tests y control de regresión (diapositivas 14 y 19)
 
 ```bash
 uv run pytest
@@ -64,7 +64,7 @@ Variantes: `--modo sin-rechazo`, `--modo juez-caido`, `--modo incompleto`. Como 
 si ya existe `datos/umbrales.<perfil>.json`, `umbrales` muestra las reglas nuevas junto a las
 fijadas sin sobrescribir el archivo (usa `--fijar` para reemplazarlas).
 
-## Vivo 5 · Comparar A y B (diapositiva 27)
+## Vivo 5 · Comparar A y B (anexo, diapositiva 17)
 
 ```bash
 for c in A B; do
@@ -78,7 +78,7 @@ uv run python s19.py revision resultados/mi-test-A
 
 En PowerShell, sustituye el bucle por los tres comandos escritos una vez con `A` y otra con `B`.
 
-## Práctica (diapositiva 31)
+## Práctica (diapositiva 15)
 
 ```bash
 uv run python s19.py estimar
@@ -90,7 +90,7 @@ uv run python s19.py estimar
 uv run pytest -m db              # integración con pgvector
 uv run ruff check .
 (cd evaluador && uv run pytest)  # tests del evaluador
-docker compose down -v           # recoger
+docker compose stop              # conservar los índices para la próxima sesión
 ```
 
 ## Perfil real
@@ -146,8 +146,12 @@ Ejecutado el 22/11/2026: `resultados/ejemplo-real/modelos/` (unos 1,0 USD, casi 
 ### Chat con modelos reales
 
 ```bash
-uv run python s19.py chat --env .env.hydrogen-sol --execute    # dentro: /perfil sol-opus cambia de modelos
+uv run python s19.py chat --env .env.hydrogen-sol --execute
 ```
+
+En el chat, escribe `3` para T12, espera la respuesta y ejecuta `/perfil terra-opus`.
+Escribe `3` otra vez para consultar a GPT‑6.1 Terra en la misma sesión.
+Usa `/perfil hydrogen-sol` para volver a Gemini 4 Hydrogen.
 
 Tests reales, también de pago:
 

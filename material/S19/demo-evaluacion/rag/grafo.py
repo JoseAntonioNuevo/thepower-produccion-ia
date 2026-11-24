@@ -10,7 +10,7 @@ evaluación (lote, informe, Ragas, regresión) no cambia.
 
 Qué aporta el grafo:
 - Las dos formas de rechazar quedan a la vista. `rechazo_previo` es una rama: no se llama al
-  modelo, ni se paga. El rechazo del modelo («No consta») lo detecta `comprobar`.
+  generador y su coste de generación es cero. El rechazo del modelo («No consta») lo detecta `comprobar`.
 - La decisión de enrutado es una función pura (`hay_evidencia`) que se prueba con una tabla.
 - `stream` entrega cada paso al terminar: la TUI (`python s19.py chat`) los pinta en vivo.
 
@@ -60,18 +60,22 @@ class EstadoConsulta(TypedDict, total=False):
 
 
 def hay_evidencia(mejor_similitud: float | None, umbral: float) -> bool:
-    """Regla de enrutado tras recuperar. Pura: se prueba con una tabla de casos."""
+    """Compara la mejor similitud con el umbral. La igualdad basta para generar y una búsqueda vacía devuelve False."""
     return mejor_similitud is not None and mejor_similitud >= umbral
 
 
 def _traza(config: RunnableConfig):
+    """Obtiene la traza de la consulta o usa una traza nula para que los nodos funcionen también con Langfuse apagado."""
     return (config.get("configurable") or {}).get("traza") or TrazaNula()
 
 
 def construir_grafo(cfg: Config, almacen, proveedores, indice_id: str):
-    """Compila el grafo de consulta con sus dependencias. No llama a nada al construirlo."""
+    """Conecta la recuperación con las ramas de generación y rechazo. Recibe el almacén y los proveedores
+    para que la TUI y los tests ejecuten el mismo grafo con dependencias distintas."""
 
     def nodo_recuperar(estado: EstadoConsulta, config: RunnableConfig) -> EstadoConsulta:
+        """Busca fragmentos usando el embedding de la pregunta y guarda documentos, similitud y tiempos.
+        El siguiente nodo usa esa evidencia para decidir si procede generar."""
         t0 = time.perf_counter()
         with _traza(config).paso("recuperacion", "retriever", input=estado["pregunta"]) as paso:
             rec = recuperar(cfg, almacen, proveedores.embeddings, indice_id, estado["pregunta"])
@@ -82,12 +86,13 @@ def construir_grafo(cfg: Config, almacen, proveedores, indice_id: str):
         return {"recuperacion": rec, "t0": t0, "t1": time.perf_counter(), "ruta": [*estado["ruta"], "recuperar"]}
 
     def ruta_tras_recuperar(estado: EstadoConsulta) -> str:
+        """Elige la siguiente rama. Solo pasa a generar si hay fragmentos y el mejor alcanza el umbral."""
         rec = estado["recuperacion"]
         evidencia = bool(rec.hallazgos) and hay_evidencia(rec.mejor_similitud, cfg.umbral_evidencia)
         return "generar" if evidencia else "rechazo_previo"
 
     def nodo_rechazo_previo(estado: EstadoConsulta) -> EstadoConsulta:
-        # Sin evidencia suficiente no se llama al generador (ni se paga).
+        """Devuelve «No consta» al faltar evidencia. Registra la búsqueda ya realizada y cero tokens de generación."""
         t0, t1 = estado["t0"], estado["t1"]
         respuesta = Respuesta(
             texto=MENSAJE_RECHAZO,
@@ -105,6 +110,8 @@ def construir_grafo(cfg: Config, almacen, proveedores, indice_id: str):
         return {"respuesta": respuesta, "ruta": [*estado["ruta"], "rechazo_previo"]}
 
     def nodo_generar(estado: EstadoConsulta, config: RunnableConfig) -> EstadoConsulta:
+        """Envía al generador la pregunta y los primeros k_contexto fragmentos. Registra la respuesta y el consumo
+        disponible en la traza para poder comparar qué recibió y cuánto costó cada llamada."""
         contexto = estado["recuperacion"].hallazgos[: cfg.k_contexto]
         pares = [(h.documento_id, h.contenido) for h in contexto]
         with _traza(config).paso(
@@ -129,7 +136,8 @@ def construir_grafo(cfg: Config, almacen, proveedores, indice_id: str):
         return {"generacion": gen, "t2": time.perf_counter(), "ruta": [*estado["ruta"], "generar"]}
 
     def nodo_comprobar(estado: EstadoConsulta) -> EstadoConsulta:
-        """Revisa lo que devolvió el modelo: rechazo del modelo, fuentes y avisos."""
+        """Detecta la abstención del generador y contrasta sus citas con los documentos enviados.
+        Guarda contexto, avisos y consumo para explicar y evaluar la respuesta."""
         gen = estado["generacion"]
         contexto = estado["recuperacion"].hallazgos[: cfg.k_contexto]
         t0, t1, t2 = estado["t0"], estado["t1"], estado["t2"]
@@ -201,6 +209,7 @@ def construir_grafo(cfg: Config, almacen, proveedores, indice_id: str):
 
 
 def _base(estado: EstadoConsulta) -> dict:
+    """Reúne pregunta, documentos, fragmentos y mejor similitud para evaluar la recuperación en ambas ramas."""
     rec = estado["recuperacion"]
     return {
         "pregunta": estado["pregunta"],
@@ -219,12 +228,8 @@ def ejecutar_consulta(
     traza=None,
     al_paso: Callable[[dict], None] | None = None,
 ) -> EstadoConsulta:
-    """Ejecuta el grafo una vez y devuelve el estado final.
-
-    Con `al_paso`, el grafo corre en modo stream y entrega cada paso al terminar
-    (`{"nodo": cambios}`); el resultado es el mismo que sin él. Los fallos del proveedor
-    no se capturan aquí: suben al llamante, que los registra como error del sistema.
-    """
+    """Ejecuta el grafo y devuelve el estado final. Si recibe al_paso, entrega cada actualización a la TUI.
+    Los errores del proveedor se propagan al llamante para que pueda registrarlos."""
     grafo = construir_grafo(cfg, almacen, proveedores, indice_id)
     config: RunnableConfig = {"configurable": {"traza": traza or TrazaNula()}}
     entrada: EstadoConsulta = {"pregunta": pregunta, "ruta": []}

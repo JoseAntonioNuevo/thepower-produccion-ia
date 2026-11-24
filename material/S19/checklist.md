@@ -7,11 +7,11 @@ Vale para las dos fechas: **M/J 24/11/2026** y **L/X 30/11/2026**, 18:30–20:00
 - [ ] Docker Desktop arranca. Python 3.12 y `uv` disponibles.
 - [ ] `cd demo-evaluacion && uv sync && (cd evaluador && uv sync)` sin errores.
 - [ ] `docker compose up -d --wait` y `uv run python s19.py preflight` → «Preflight correcto».
-- [ ] `uv run pytest` → 131 pasan, 3 excluidos. `(cd evaluador && uv run pytest)` → 19 pasan.
+- [ ] `uv run pytest` → 137 pasan, 3 excluidos y 1 fallo esperado en la política de fuentes contradictorias. `(cd evaluador && uv run pytest)` → 19 pasan.
 - [ ] `uv run python s19.py chat` abre el chat en tu terminal (no en una salida de IDE); `1` responde y Esc sale.
 - [ ] Ensayo completo de [los comandos](demo-evaluacion/docs/comandos.md) con prefijo `ensayo-` (`calibrar` y `umbrales` comparan sin sobrescribir `datos/` salvo con `--fijar`).
 - [ ] Decidido si se enseña el perfil real. Si sí: gasto autorizado, `OPENROUTER_API_KEY` en `.env`, `catalogo` y `estimar` revisados, `preflight` del perfil real correcto.
-- [ ] Si se enseña Langfuse: claves `LANGFUSE_*` y `S19_LANGFUSE=on` en `.env.hydrogen-sol` y `.env.sol-opus`, y un ensayo que deje trazas visibles (ver [guion del directo](guion-directo-modelos.md)).
+- [ ] Si se enseña Langfuse en el chat, comprueba las claves `LANGFUSE_*` y `S19_LANGFUSE=on` en `.env.hydrogen-sol` y `.env.terra-opus`. Haz un ensayo con trazas visibles (ver [guion del directo](guion-directo-modelos.md)).
 
 ## 15 minutos antes
 
@@ -36,12 +36,12 @@ Vale para las dos fechas: **M/J 24/11/2026** y **L/X 30/11/2026**, 18:30–20:00
 | Fallo | Qué hacer |
 |---|---|
 | Docker no arranca | Enseñar `resultados/ejemplo-doble/` y ejecutar `uv run pytest` (no necesita base de datos) |
-| `preflight` no conecta | `docker compose down -v && docker compose up -d --wait` (después hay que volver a `ingestar` A y B) |
-| El chat no abre | Necesita una terminal real; si falla, seguir con `preguntar` y el mismo número de pregunta |
+| `preflight` no conecta | Comprueba `docker compose ps -a`, ejecuta `docker compose up -d --wait` y repite el preflight del perfil de clase. |
+| El chat no abre | Usa `preguntar` con el texto completo de la pregunta. Para mostrar el rechazo previo en perfil doble, pregunta «¿Cuál es el horario de la cafetería de la oficina de Madrid?». |
 | Puerto 54519 ocupado | Cambiar el puerto en `compose.yaml` y en `S19_DATABASE_URL` |
 | El evaluador tarda en arrancar | La primera importación de Ragas compila; ejecutarlo una vez antes de clase |
 
 ## Al terminar
 
-- [ ] `docker compose down -v`.
+- [ ] `docker compose stop` para conservar los índices para el siguiente directo.
 - [ ] Anotar dudas de los alumnos para la siguiente fecha.

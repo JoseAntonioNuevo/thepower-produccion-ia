@@ -99,24 +99,33 @@ class Trazador:
             ) as raiz:
                 yield _Traza(self._cliente, raiz, trace_id)
 
-    def registrar_evaluador(self, run_id: str, caso_id: str, cfg: Config, filas: list[dict]) -> None:
+    def registrar_evaluador(
+        self, run_id: str, caso_id: str, cfg: Config, filas: list[dict], *, solo_consumo: bool = False
+    ) -> None:
         """Publica las puntuaciones de Ragas en la traza de la consulta y su consumo aparte."""
         if not self.activo or not filas:
             return
         from langfuse import propagate_attributes
 
-        traza_consulta = self.id_traza(run_id, caso_id)
-        for fila in filas:
-            if fila["evaluable"]:
-                self._cliente.create_score(
-                    trace_id=traza_consulta,
-                    name=fila["metrica"],
-                    value=float(fila["valor"]),
-                    data_type="NUMERIC",
-                    comment=f"ragas {fila['evaluador'].get('ragas')}",
-                )
         ev = filas[0]["evaluador"]
         usos = [f["consumo"] for f in filas]
+        llamadas_llm = sum(u.get("llamadas_llm", 0) for u in usos)
+        hubo_consumo = llamadas_llm or any(u.get("llamadas_embeddings", 0) for u in usos)
+        if solo_consumo and not hubo_consumo:
+            return
+
+        traza_consulta = self.id_traza(run_id, caso_id)
+        if not solo_consumo:
+            for fila in filas:
+                if fila["evaluable"]:
+                    self._cliente.create_score(
+                        trace_id=traza_consulta,
+                        score_id=self.id_traza(run_id, caso_id, f":ragas:{fila['metrica']}"),
+                        name=fila["metrica"],
+                        value=float(fila["valor"]),
+                        data_type="NUMERIC",
+                        comment=f"ragas {fila['evaluador'].get('ragas')}",
+                    )
         tokens = {
             k: sum(u[k] for u in usos) if all(u.get(k) is not None for u in usos) else None
             for k in ("tokens_entrada", "tokens_salida")
@@ -128,18 +137,24 @@ class Trazador:
             if all(u.get("coste_usd") is not None for u in usos)
             else None
         )
+        # Langfuse 5.2 solo conserva el modelo, el uso y el coste en observaciones de generación.
+        observacion = {"name": "evaluador-ragas", "as_type": "evaluator"}
+        if hubo_consumo:
+            observacion = {
+                "name": "consumo-juez",
+                "as_type": "generation",
+                "model": ev.get("llm"),
+                "usage_details": uso,
+                "cost_details": coste,
+            }
         etiquetas = ["s19", "evaluador", f"config:{cfg.config_id}", f"perfil:{ev.get('modo')}"]
         with propagate_attributes(session_id=run_id, tags=etiquetas, trace_name="evaluador-ragas"):
             with self._cliente.start_as_current_observation(
                 trace_context={"trace_id": self.id_traza(run_id, caso_id, ":evaluador")},
-                name="evaluador-ragas",
-                as_type="evaluator",
-                model=ev.get("llm"),
                 input={"caso_id": caso_id, "traza_consulta": traza_consulta},
                 output={f["metrica"]: f["valor"] if f["evaluable"] else f["motivo"] for f in filas},
-                usage_details=uso,
-                cost_details=coste,
-                metadata={"llamadas_llm": sum(u.get("llamadas_llm", 0) for u in usos), **ev},
+                metadata={"llamadas_llm": llamadas_llm, **ev},
+                **observacion,
             ):
                 pass
 
